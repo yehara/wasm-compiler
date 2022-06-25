@@ -20,7 +20,35 @@ fn compile(exp: &str) {
     let num:i32 = strtoi(&mut iter);
     println!("(module");
     println!("  (func $main (result i32)");
-    println!("   i32.const {})", num);
+    println!("   i32.const {}", num);
+
+    loop {
+        match iter.next() {
+            Some(val) => {
+                match val {
+                    '+' => {
+                        let num:i32 = strtoi(&mut iter);
+                        println!("   i32.const {}", num);
+                        println!("   i32.add");
+                    },
+                    '-' => {
+                        let num:i32 = strtoi(&mut iter);
+                        println!("   i32.const {}", num);
+                        println!("   i32.sub");
+                    },
+                    _ => {
+                        eprintln!("式が正しくありません");
+                        break;
+                    }
+                }
+            },
+            None => {
+                break;
+            }
+        }
+    }
+
+    println!("  )");
     println!("  (export \"main\" (func $main))");
     println!(")");
 
