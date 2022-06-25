@@ -9,10 +9,17 @@ fn main() {
         exit(-1);
     }
 
-    let num:i32 = args[1].parse().unwrap();
+    compile(&args[1]);
+
+}
+
+fn compile(exp: &str) {
+
+    let num:i32 = exp.parse().unwrap();
     println!("(module");
     println!("  (func $main (result i32)");
     println!("   i32.const {})", num);
     println!("  (export \"main\" (func $main))");
     println!(")");
+
 }
