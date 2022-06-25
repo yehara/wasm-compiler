@@ -1,4 +1,5 @@
 use std::env;
+use std::iter::Peekable;
 use std::process::exit;
 
 fn main() {
@@ -15,11 +16,25 @@ fn main() {
 
 fn compile(exp: &str) {
 
-    let num:i32 = exp.parse().unwrap();
+    let mut iter = exp.chars().peekable();
+    let num:i32 = strtoi(&mut iter);
     println!("(module");
     println!("  (func $main (result i32)");
     println!("   i32.const {})", num);
     println!("  (export \"main\" (func $main))");
     println!(")");
 
+}
+
+fn strtoi<L: Iterator<Item = char>>(iter: &mut Peekable<L>) -> i32 {
+    let mut num = 0;
+    while let Some(c) = iter.peek() {
+        if c.is_digit(10) {
+            num = num * 10 + c.to_digit(10).unwrap() as i32;
+            iter.next();
+        } else {
+            break;
+        }
+    }
+    num
 }
