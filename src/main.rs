@@ -1,6 +1,7 @@
 use std::env;
 use std::iter::Peekable;
 use std::process::exit;
+use std::str::Chars;
 
 fn main() {
 
@@ -16,37 +17,15 @@ fn main() {
 
 fn compile(exp: &str) {
 
-    let mut iter = exp.chars().peekable();
-    let num:i32 = strtoi(&mut iter);
+
+    let mut input = Input::new(exp);
+    let node = input.tokenize();
+    //println!("{:?}", node);
+
     println!("(module");
     println!("  (func $main (result i32)");
-    println!("   i32.const {}", num);
 
-    loop {
-        match iter.next() {
-            Some(val) => {
-                match val {
-                    '+' => {
-                        let num:i32 = strtoi(&mut iter);
-                        println!("   i32.const {}", num);
-                        println!("   i32.add");
-                    },
-                    '-' => {
-                        let num:i32 = strtoi(&mut iter);
-                        println!("   i32.const {}", num);
-                        println!("   i32.sub");
-                    },
-                    _ => {
-                        eprintln!("式が正しくありません");
-                        break;
-                    }
-                }
-            },
-            None => {
-                break;
-            }
-        }
-    }
+    node.gen();
 
     println!("  )");
     println!("  (export \"main\" (func $main))");
@@ -65,4 +44,134 @@ fn strtoi<L: Iterator<Item = char>>(iter: &mut Peekable<L>) -> i32 {
         }
     }
     num
+}
+
+#[derive(Debug)]
+enum NodeKind {
+    Op(char),
+    Num(i32)
+}
+
+type Link = Option<Box<Node>>;
+
+#[derive(Debug)]
+struct Node {
+    kind: NodeKind,
+    lhs: Link,
+    rhs: Link
+}
+
+impl Node {
+    fn new(kind: NodeKind, lhs: Link, rhs: Link) -> Self {
+        Self { kind, lhs, rhs }
+    }
+    fn link(node: Node) -> Link {
+        Some(Box::new(node))
+    }
+    fn gen(&self) {
+        if let Some(child) = &self.lhs {
+            child.gen();
+        }
+        if let Some(child) = &self.rhs {
+            child.gen();
+        }
+        match self.kind {
+            NodeKind::Num(num) => {
+                println!("   i32.const {}", num);
+            },
+            NodeKind::Op('+') => {
+                println!("   i32.add");
+            },
+            NodeKind::Op('-') => {
+                println!("   i32.sub");
+            },
+            NodeKind::Op('*') => {
+                println!("   i32.mul");
+            },
+            NodeKind::Op('/') => {
+                println!("   i32.div_s");
+            },
+            _ => {
+                eprintln!("式が正しくありません");
+                exit(-1);
+            }
+        }
+    }
+}
+
+struct Input<'a> {
+    input: Peekable<Chars<'a>>,
+}
+
+impl <'a> Input<'a> {
+    fn new(input: &'a str) -> Self {
+        Self { input: input.chars().peekable() }
+    }
+
+    fn tokenize(&mut self) -> Node {
+        self.expr()
+    }
+
+    fn expr(&mut self) -> Node {
+        let mut node = self.mul();
+        loop {
+            match self.input.peek() {
+                Some(&'+') | Some(&'-') => {
+                    let op = self.input.next().unwrap();
+                    let right = self.mul();
+                    node = Node::new(NodeKind::Op(op), Node::link(node), Node::link(right));
+                },
+                Some(&' ') => {
+                    self.input.next();
+                },
+                _ => {
+                    break;
+                }
+            }
+        }
+        node
+    }
+
+    fn mul(&mut self) -> Node {
+        let mut node = self.primary();
+        loop {
+            match self.input.peek() {
+                Some(&'*') | Some(&'/') => {
+                    let op = self.input.next().unwrap();
+                    let right = self.primary();
+                    node = Node::new(NodeKind::Op(op), Node::link(node), Node::link(right));
+                },
+                Some(&' ') => {
+                    self.input.next();
+                },
+                _ => {
+                    break;
+                }
+            }
+        }
+        node
+    }
+
+    fn primary(&mut self) -> Node {
+        loop {
+            match self.input.peek() {
+                Some(&'(') => {
+                    self.input.next();
+                    let node = self.expr();
+                    self.input.next();
+                    return node
+                },
+                Some(&_digit @ '0'..='9') => {
+                    let num = strtoi(&mut self.input);
+                    return Node::new(NodeKind::Num(num), None, None)
+                },
+                Some(&' ') => {
+                    self.input.next();
+                },
+                _ => {
+                    panic!("factor error");
+                }
+            }
+        }
+    }
 }
