@@ -133,12 +133,12 @@ impl <'a> Input<'a> {
     }
 
     fn mul(&mut self) -> Node {
-        let mut node = self.primary();
+        let mut node = self.unary();
         loop {
             match self.input.peek() {
                 Some(&'*') | Some(&'/') => {
                     let op = self.input.next().unwrap();
-                    let right = self.primary();
+                    let right = self.unary();
                     node = Node::new(NodeKind::Op(op), Node::link(node), Node::link(right));
                 },
                 Some(&' ') => {
@@ -150,6 +150,24 @@ impl <'a> Input<'a> {
             }
         }
         node
+    }
+
+    fn unary(&mut self) -> Node {
+        return match self.input.peek() {
+            Some(&'+') => {
+                self.input.next();
+                self.primary()
+            },
+            Some(&'-') => {
+                let op = self.input.next().unwrap();
+                let left = Node::new(NodeKind::Num(0), None, None);
+                let right = self.primary();
+                Node::new(NodeKind::Op(op), Node::link(left), Node::link(right))
+            },
+            _ => {
+                self.primary()
+            }
+        }
     }
 
     fn primary(&mut self) -> Node {
