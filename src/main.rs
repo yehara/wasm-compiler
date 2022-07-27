@@ -1,7 +1,6 @@
 use std::env;
 use std::iter::Peekable;
 use std::process::exit;
-use std::str::Chars;
 
 fn main() {
 
@@ -16,7 +15,6 @@ fn main() {
 }
 
 fn compile(exp: &str) {
-
 
     let mut input = Input::new(exp);
     let node = input.tokenize();
@@ -33,22 +31,12 @@ fn compile(exp: &str) {
 
 }
 
-fn strtoi<L: Iterator<Item = char>>(iter: &mut Peekable<L>) -> i32 {
-    let mut num = 0;
-    while let Some(c) = iter.peek() {
-        if c.is_digit(10) {
-            num = num * 10 + c.to_digit(10).unwrap() as i32;
-            iter.next();
-        } else {
-            break;
-        }
-    }
-    num
-}
-
 #[derive(Debug)]
 enum NodeKind {
-    Op(char),
+    Add,
+    Sub,
+    Mult,
+    Div,
     Num(i32)
 }
 
@@ -79,33 +67,35 @@ impl Node {
             NodeKind::Num(num) => {
                 println!("   i32.const {}", num);
             },
-            NodeKind::Op('+') => {
+            NodeKind::Add => {
                 println!("   i32.add");
             },
-            NodeKind::Op('-') => {
+            NodeKind::Sub => {
                 println!("   i32.sub");
             },
-            NodeKind::Op('*') => {
+            NodeKind::Mult => {
                 println!("   i32.mul");
             },
-            NodeKind::Op('/') => {
+            NodeKind::Div => {
                 println!("   i32.div_s");
             },
-            _ => {
-                eprintln!("式が正しくありません");
-                exit(-1);
-            }
         }
     }
 }
 
+
+enum Token<'a> {
+    Num(i32),
+    Reserved(&'a str),
+}
+
 struct Input<'a> {
-    input: Peekable<Chars<'a>>,
+    token_iterator: Peekable<TokenIterator<'a>>,
 }
 
 impl <'a> Input<'a> {
     fn new(input: &'a str) -> Self {
-        Self { input: input.chars().peekable() }
+        Self { token_iterator: TokenIterator { s: input }.peekable() }
     }
 
     fn tokenize(&mut self) -> Node {
@@ -115,14 +105,16 @@ impl <'a> Input<'a> {
     fn expr(&mut self) -> Node {
         let mut node = self.mul();
         loop {
-            match self.input.peek() {
-                Some(&'+') | Some(&'-') => {
-                    let op = self.input.next().unwrap();
+            match self.token_iterator.peek() {
+                Some(Token::Reserved("+")) => {
+                    self.token_iterator.next();
                     let right = self.mul();
-                    node = Node::new(NodeKind::Op(op), Node::link(node), Node::link(right));
+                    node = Node::new(NodeKind::Add, Node::link(node), Node::link(right));
                 },
-                Some(&' ') => {
-                    self.input.next();
+                Some(Token::Reserved("-")) => {
+                    self.token_iterator.next();
+                    let right = self.mul();
+                    node = Node::new(NodeKind::Sub, Node::link(node), Node::link(right));
                 },
                 _ => {
                     break;
@@ -135,14 +127,16 @@ impl <'a> Input<'a> {
     fn mul(&mut self) -> Node {
         let mut node = self.unary();
         loop {
-            match self.input.peek() {
-                Some(&'*') | Some(&'/') => {
-                    let op = self.input.next().unwrap();
+            match self.token_iterator.peek() {
+                Some(Token::Reserved("*")) => {
+                    self.token_iterator.next();
                     let right = self.unary();
-                    node = Node::new(NodeKind::Op(op), Node::link(node), Node::link(right));
+                    node = Node::new(NodeKind::Mult, Node::link(node), Node::link(right));
                 },
-                Some(&' ') => {
-                    self.input.next();
+                Some(Token::Reserved("/")) => {
+                    self.token_iterator.next();
+                    let right = self.unary();
+                    node = Node::new(NodeKind::Div, Node::link(node), Node::link(right));
                 },
                 _ => {
                     break;
@@ -153,16 +147,16 @@ impl <'a> Input<'a> {
     }
 
     fn unary(&mut self) -> Node {
-        return match self.input.peek() {
-            Some(&'+') => {
-                self.input.next();
+        return match self.token_iterator.peek() {
+            Some(Token::Reserved("+")) => {
+                self.token_iterator.next();
                 self.primary()
             },
-            Some(&'-') => {
-                let op = self.input.next().unwrap();
+            Some(Token::Reserved("-")) => {
+                self.token_iterator.next();
                 let left = Node::new(NodeKind::Num(0), None, None);
                 let right = self.primary();
-                Node::new(NodeKind::Op(op), Node::link(left), Node::link(right))
+                Node::new(NodeKind::Sub, Node::link(left), Node::link(right))
             },
             _ => {
                 self.primary()
@@ -172,19 +166,17 @@ impl <'a> Input<'a> {
 
     fn primary(&mut self) -> Node {
         loop {
-            match self.input.peek() {
-                Some(&'(') => {
-                    self.input.next();
+            match self.token_iterator.peek() {
+                Some(Token::Reserved("(")) => {
+                    self.token_iterator.next();
                     let node = self.expr();
-                    self.input.next();
+                    self.token_iterator.next();
                     return node
                 },
-                Some(&_digit @ '0'..='9') => {
-                    let num = strtoi(&mut self.input);
-                    return Node::new(NodeKind::Num(num), None, None)
-                },
-                Some(&' ') => {
-                    self.input.next();
+                Some(Token::Num(num)) => {
+                    let node = Node::new(NodeKind::Num(*num), None, None);
+                    self.token_iterator.next();
+                    return node;
                 },
                 _ => {
                     panic!("factor error");
@@ -192,4 +184,55 @@ impl <'a> Input<'a> {
             }
         }
     }
+}
+
+struct TokenIterator<'a> {
+    s: &'a str,
+}
+
+impl<'a> Iterator for TokenIterator<'a> {
+    type Item = Token<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.s = self.s.trim_start();
+        if self.s.is_empty() {
+            return None;
+        }
+        if self.s.starts_with("(") {
+            self.s = self.s.split_at(1).1;
+            return Some(Token::Reserved("("));
+        }
+        if self.s.starts_with(")") {
+            self.s = self.s.split_at(1).1;
+            return Some(Token::Reserved(")"));
+        }
+        if self.s.starts_with("+") {
+            self.s = self.s.split_at(1).1;
+            return Some(Token::Reserved("+"));
+        }
+        if self.s.starts_with("-") {
+            self.s = self.s.split_at(1).1;
+            return Some(Token::Reserved("-"));
+        }
+        if self.s.starts_with("*") {
+            self.s = self.s.split_at(1).1;
+            return Some(Token::Reserved("*"));
+        }
+        if self.s.starts_with("/") {
+            self.s = self.s.split_at(1).1;
+            return Some(Token::Reserved("/"));
+        }
+        let (digit_s, remain_s) = split_digit(self.s);
+        if !digit_s.is_empty() {
+            self.s = remain_s;
+            return Some(Token::Num(i32::from_str_radix(digit_s, 10).unwrap()));
+        }
+        panic!("Invalid token stream")
+    }
+
+}
+
+fn split_digit(s: &str) -> (&str, &str) {
+    let first_non_num_idx = s.find(|c| !char::is_numeric(c)).unwrap_or(s.len());
+    s.split_at(first_non_num_idx)
 }
