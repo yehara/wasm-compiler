@@ -16,6 +16,30 @@ impl<'a> Iterator for TokenIterator<'a> {
         if self.s.is_empty() {
             return None;
         }
+        if self.s.starts_with("==") {
+            self.s = self.s.split_at(2).1;
+            return Some(Token::Reserved("=="));
+        }
+        if self.s.starts_with("!=") {
+            self.s = self.s.split_at(2).1;
+            return Some(Token::Reserved("!="));
+        }
+        if self.s.starts_with("<=") {
+            self.s = self.s.split_at(2).1;
+            return Some(Token::Reserved("<="));
+        }
+        if self.s.starts_with(">=") {
+            self.s = self.s.split_at(2).1;
+            return Some(Token::Reserved(">="));
+        }
+        if self.s.starts_with(">") {
+            self.s = self.s.split_at(1).1;
+            return Some(Token::Reserved(">"));
+        }
+        if self.s.starts_with("<") {
+            self.s = self.s.split_at(1).1;
+            return Some(Token::Reserved("<"));
+        }
         if self.s.starts_with("(") {
             self.s = self.s.split_at(1).1;
             return Some(Token::Reserved("("));

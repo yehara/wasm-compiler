@@ -26,6 +26,12 @@ enum NodeKind {
     Sub,
     Mult,
     Div,
+    Equal,
+    NotEqual,
+    GreaterThan,
+    GreaterThanOrEqual,
+    LessThan,
+    LessThanOrEqual,
     Num(i32)
 }
 
@@ -68,6 +74,24 @@ impl Node {
             NodeKind::Div => {
                 println!("   i32.div_s");
             },
+            NodeKind::Equal => {
+                println!("   i32.eq");
+            },
+            NodeKind::NotEqual => {
+                println!("   i32.ne");
+            },
+            NodeKind::GreaterThan => {
+                println!("   i32.gt_s");
+            },
+            NodeKind::GreaterThanOrEqual => {
+                println!("   i32.ge_s");
+            },
+            NodeKind::LessThan => {
+                println!("   i32.lt_s");
+            },
+            NodeKind::LessThanOrEqual => {
+                println!("   i32.le_s");
+            }
         }
     }
 }
@@ -87,6 +111,63 @@ impl <'a> Input<'a> {
     }
 
     fn expr(&mut self) -> Node {
+        return self.equality();
+    }
+
+    fn equality(&mut self) -> Node {
+        let mut node = self.relational();
+        loop {
+            match self.token_iterator.peek() {
+                Some(Token::Reserved("==")) => {
+                    self.token_iterator.next();
+                    let right = self.relational();
+                    node = Node::new(NodeKind::Equal, Node::link(node), Node::link(right));
+                },
+                Some(Token::Reserved("!=")) => {
+                    self.token_iterator.next();
+                    let right = self.relational();
+                    node = Node::new(NodeKind::NotEqual, Node::link(node), Node::link(right));
+                },
+                _ => {
+                    break;
+                }
+            }
+        }
+        node
+    }
+
+    fn relational(&mut self) -> Node {
+        let mut node = self.add();
+        loop {
+            match self.token_iterator.peek() {
+                Some(Token::Reserved(">=")) => {
+                    self.token_iterator.next();
+                    let right = self.add();
+                    node = Node::new(NodeKind::GreaterThanOrEqual, Node::link(node), Node::link(right));
+                },
+                Some(Token::Reserved(">")) => {
+                    self.token_iterator.next();
+                    let right = self.add();
+                    node = Node::new(NodeKind::GreaterThan, Node::link(node), Node::link(right));
+                },
+                Some(Token::Reserved("<=")) => {
+                    self.token_iterator.next();
+                    let right = self.add();
+                    node = Node::new(NodeKind::LessThanOrEqual, Node::link(node), Node::link(right));
+                },
+                Some(Token::Reserved("<")) => {
+                    self.token_iterator.next();
+                    let right = self.add();
+                    node = Node::new(NodeKind::LessThan, Node::link(node), Node::link(right));
+                },
+                _ => {
+                    break;
+                }
+            }
+        }
+        node
+    }
+    fn add(&mut self) -> Node {
         let mut node = self.mul();
         loop {
             match self.token_iterator.peek() {

@@ -23,5 +23,12 @@ assert 15 '5*(9-6)'
 assert 4 '(3+5)/2'
 assert 15 '-5*-3'
 assert 5 '+30/+6'
-
+assert 1 '3*4==12'
+assert 0 '3*4==0'
+assert 1 '3*4!=0'
+assert 0 '3*4!=12'
+assert 1 '3*4>=12'
+assert 0 '3*4>=13'
+assert 1 '3*4<=12'
+assert 0 '3*4<=11'
 echo OK
