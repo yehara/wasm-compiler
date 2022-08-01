@@ -70,7 +70,7 @@ impl Node {
     }
 }
 
-
+#[derive(PartialEq)]
 enum Token<'a> {
     Num(i32),
     Reserved(&'a str),
@@ -157,7 +157,7 @@ impl <'a> Input<'a> {
                 Some(Token::Reserved("(")) => {
                     self.token_iterator.next();
                     let node = self.expr();
-                    self.token_iterator.next();
+                    self.expect(Token::Reserved(")"));
                     return node
                 },
                 Some(Token::Num(num)) => {
@@ -170,6 +170,22 @@ impl <'a> Input<'a> {
                 }
             }
         }
+    }
+
+    fn expect(&mut self, expected: Token) -> Token {
+        let next = self.token_iterator.next();
+        match next {
+            Some(token) => {
+                if token != expected {
+                    panic!("unexpected token");
+                }
+                return token;
+            },
+            _ => {
+                panic!("Invalid token stream");
+            }
+        }
+
     }
 }
 
