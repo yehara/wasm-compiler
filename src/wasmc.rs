@@ -5,13 +5,27 @@ use crate::parser::TokenIterator;
 pub fn compile(exp: &str) {
 
     let mut input = Input::new(exp);
-    let node = input.tokenize();
+    let nodes = input.tokenize();
     //println!("{:?}", node);
 
     println!("(module");
     println!("  (func $main (result i32)");
 
-    node.gen();
+    // 固定で(a..z)に対応する 26 個(のローカル変数を用意しておく
+    for _ in 0..26 {
+        println!("   (local i32)");
+    }
+
+    let mut first = true;
+
+    for node in nodes {
+        if !first {
+            println!("   drop");
+        } else {
+            first = false;
+        }
+        node.gen();
+    }
 
     println!("  )");
     println!("  (export \"main\" (func $main))");
@@ -21,6 +35,7 @@ pub fn compile(exp: &str) {
 
 
 #[derive(Debug)]
+#[derive(PartialEq)]
 enum NodeKind {
     Add,
     Sub,
@@ -32,6 +47,8 @@ enum NodeKind {
     GreaterThanOrEqual,
     LessThan,
     LessThanOrEqual,
+    Assign,
+    LVar(i32),
     Num(i32)
 }
 
@@ -51,7 +68,27 @@ impl Node {
     fn link(node: Node) -> Link {
         Some(Box::new(node))
     }
+
+    fn gen_lval(&self) {
+        match self.lhs.as_ref().unwrap().kind {
+            NodeKind::LVar(index) => {
+                self.rhs.as_ref().unwrap().gen();
+                // 変数に保存しつつ、スタックに残しておく
+                println!("   local.tee {}", index);
+            },
+            _ => {
+                panic!("代入の左辺値が変数ではありません");
+            }
+        }
+    }
+
     fn gen(&self) {
+
+        if self.kind == NodeKind::Assign {
+            self.gen_lval();
+            return;
+        }
+
         if let Some(child) = &self.lhs {
             child.gen();
         }
@@ -91,7 +128,11 @@ impl Node {
             },
             NodeKind::LessThanOrEqual => {
                 println!("   i32.le_s");
-            }
+            },
+            NodeKind::LVar(index) => {
+                println!("   local.get {}", index);
+            },
+            _ => ()
         }
     }
 }
@@ -101,17 +142,56 @@ struct Input<'a> {
     token_iterator: Peekable<TokenIterator<'a>>,
 }
 
+/*
+program    = stmt*
+stmt       = expr ";"
+expr       = assign
+assign     = equality ("=" assign)?
+equality   = relational ("==" relational | "!=" relational)*
+relational = add ("<" add | "<=" add | ">" add | ">=" add)*
+add        = mul ("+" mul | "-" mul)*
+mul        = unary ("*" unary | "/" unary)*
+unary      = ("+" | "-")? primary
+primary    = num | ident | "(" expr ")"
+ */
 impl <'a> Input<'a> {
     fn new(input: &'a str) -> Self {
         Self { token_iterator: TokenIterator { s: input }.peekable() }
     }
 
-    fn tokenize(&mut self) -> Node {
-        self.expr()
+    fn tokenize(&mut self) -> Vec<Node> {
+        self.program()
+    }
+
+    fn program(&mut self) -> Vec<Node> {
+        let mut nodes = Vec::new();
+        while self.token_iterator.peek() != None {
+            nodes.push(self.stmt());
+        }
+        nodes
+    }
+
+    fn stmt(&mut self) -> Node {
+        let node = self.expr();
+        self.expect(Token::Reserved(";"));
+        node
     }
 
     fn expr(&mut self) -> Node {
-        return self.equality();
+        return self.assign();
+    }
+
+    fn assign(&mut self) -> Node {
+        let mut node = self.equality();
+        match self.token_iterator.peek() {
+            Some(Token::Reserved("=")) => {
+                self.token_iterator.next();
+                let right = self.assign();
+                node = Node::new(NodeKind::Assign, Node::link(node),Node::link(right));
+            },
+            _ => ()
+        }
+        node
     }
 
     fn equality(&mut self) -> Node {
@@ -240,6 +320,12 @@ impl <'a> Input<'a> {
                 },
                 Some(Token::Num(num)) => {
                     let node = Node::new(NodeKind::Num(*num), None, None);
+                    self.token_iterator.next();
+                    return node;
+                },
+                Some(Token::Ident(name)) => {
+                    let index = name.as_bytes()[0] - b'a';
+                    let node = Node::new(NodeKind::LVar(index as i32), None, None);
                     self.token_iterator.next();
                     return node;
                 },
