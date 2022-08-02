@@ -66,6 +66,14 @@ impl<'a> Iterator for TokenIterator<'a> {
             self.s = self.s.split_at(1).1;
             return Some(Token::Reserved("/"));
         }
+        if self.s.starts_with("=") {
+            self.s = self.s.split_at(1).1;
+            return Some(Token::Reserved("="));
+        }
+        if self.s.starts_with(";") {
+            self.s = self.s.split_at(1).1;
+            return Some(Token::Reserved(";"));
+        }
         match self.s.chars().next() {
             Some('a'..='z') => {
                 let (ident, rest) = self.s.split_at(1);
@@ -119,4 +127,21 @@ fn test_rel() {
     assert_eq!(it.next(), Some(Token::Num(2)));
     assert_eq!(it.next(), Some(Token::Reserved(">")));
     assert_eq!(it.next(), Some(Token::Num(1)));
+    assert_eq!(it.next(), None);
+}
+
+#[test]
+fn test_expr() {
+    let mut it = TokenIterator { s: "a=1;b=a+1;" }.peekable();
+    assert_eq!(it.next(), Some(Token::Ident("a")));
+    assert_eq!(it.next(), Some(Token::Reserved("=")));
+    assert_eq!(it.next(), Some(Token::Num(1)));
+    assert_eq!(it.next(), Some(Token::Reserved(";")));
+    assert_eq!(it.next(), Some(Token::Ident("b")));
+    assert_eq!(it.next(), Some(Token::Reserved("=")));
+    assert_eq!(it.next(), Some(Token::Ident("a")));
+    assert_eq!(it.next(), Some(Token::Reserved("+")));
+    assert_eq!(it.next(), Some(Token::Num(1)));
+    assert_eq!(it.next(), Some(Token::Reserved(";")));
+    assert_eq!(it.next(), None);
 }
