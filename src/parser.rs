@@ -75,9 +75,9 @@ impl<'a> Iterator for TokenIterator<'a> {
             return Some(Token::Reserved(";"));
         }
         match self.s.chars().next() {
-            Some('a'..='z') => {
-                let (ident, rest) = self.s.split_at(1);
-                self.s = rest;
+            Some('a'..='z' | 'A'..='Z') => {
+                let (ident, remain) = split_ident(self.s);
+                self.s = remain;
                 return Some(Token::Ident(ident));
             }
             _ => (),
@@ -95,6 +95,15 @@ impl<'a> Iterator for TokenIterator<'a> {
 fn split_digit(s: &str) -> (&str, &str) {
     let first_non_num_idx = s.find(|c| !char::is_numeric(c)).unwrap_or(s.len());
     s.split_at(first_non_num_idx)
+}
+
+fn split_ident(s: &str) -> (&str, &str) {
+    let index = s.find(|c| !is_ident_char(c)).unwrap_or(s.len());
+    s.split_at(index)
+}
+
+fn is_ident_char(c: char) -> bool {
+    char::is_alphanumeric(c) || c == '_'
 }
 
 
@@ -140,6 +149,22 @@ fn test_expr() {
     assert_eq!(it.next(), Some(Token::Ident("b")));
     assert_eq!(it.next(), Some(Token::Reserved("=")));
     assert_eq!(it.next(), Some(Token::Ident("a")));
+    assert_eq!(it.next(), Some(Token::Reserved("+")));
+    assert_eq!(it.next(), Some(Token::Num(1)));
+    assert_eq!(it.next(), Some(Token::Reserved(";")));
+    assert_eq!(it.next(), None);
+}
+
+#[test]
+fn variable() {
+    let mut it = TokenIterator { s: "aZ_09=1;b=aZ_09+1;" }.peekable();
+    assert_eq!(it.next(), Some(Token::Ident("aZ_09")));
+    assert_eq!(it.next(), Some(Token::Reserved("=")));
+    assert_eq!(it.next(), Some(Token::Num(1)));
+    assert_eq!(it.next(), Some(Token::Reserved(";")));
+    assert_eq!(it.next(), Some(Token::Ident("b")));
+    assert_eq!(it.next(), Some(Token::Reserved("=")));
+    assert_eq!(it.next(), Some(Token::Ident("aZ_09")));
     assert_eq!(it.next(), Some(Token::Reserved("+")));
     assert_eq!(it.next(), Some(Token::Num(1)));
     assert_eq!(it.next(), Some(Token::Reserved(";")));
