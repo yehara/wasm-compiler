@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::iter::Peekable;
 use crate::parser::Token;
 use crate::parser::TokenIterator;
@@ -11,14 +12,13 @@ pub fn compile(exp: &str) {
     println!("(module");
     println!("  (func $main (result i32)");
 
-    // 固定で(a..z)に対応する 26 個(のローカル変数を用意しておく
-    for _ in 0..26 {
-        println!("   (local i32)");
-    }
-
     let mut first = true;
 
-    for node in nodes {
+    let mut vars : HashSet<String> = HashSet::new();
+    for node in &nodes {
+        node.gen_locals(&mut vars);
+    }
+    for node in &nodes {
         if !first {
             println!("   drop");
         } else {
@@ -48,7 +48,7 @@ enum NodeKind {
     LessThan,
     LessThanOrEqual,
     Assign,
-    LVar(i32),
+    LVar(String),
     Num(i32)
 }
 
@@ -70,11 +70,11 @@ impl Node {
     }
 
     fn gen_lval(&self) {
-        match self.lhs.as_ref().unwrap().kind {
-            NodeKind::LVar(index) => {
+        match &self.lhs.as_ref().unwrap().kind {
+            NodeKind::LVar(name) => {
                 self.rhs.as_ref().unwrap().gen();
                 // 変数に保存しつつ、スタックに残しておく
-                println!("   local.tee {}", index);
+                println!("   local.tee ${}", name);
             },
             _ => {
                 panic!("代入の左辺値が変数ではありません");
@@ -83,7 +83,6 @@ impl Node {
     }
 
     fn gen(&self) {
-
         if self.kind == NodeKind::Assign {
             self.gen_lval();
             return;
@@ -95,7 +94,7 @@ impl Node {
         if let Some(child) = &self.rhs {
             child.gen();
         }
-        match self.kind {
+        match &self.kind {
             NodeKind::Num(num) => {
                 println!("   i32.const {}", num);
             },
@@ -129,14 +128,32 @@ impl Node {
             NodeKind::LessThanOrEqual => {
                 println!("   i32.le_s");
             },
-            NodeKind::LVar(index) => {
-                println!("   local.get {}", index);
+            NodeKind::LVar(name) => {
+                println!("   local.get ${}", name);
             },
             _ => ()
         }
     }
-}
 
+    fn gen_locals(&self, vars: &mut HashSet<String>) {
+        match &self.kind {
+            NodeKind::LVar(name) => {
+                if !vars.contains(name) {
+                    vars.insert(name.to_string());
+                    println!("   (local ${} i32)", name);
+                }
+            },
+            _ => ()
+        }
+        if let Some(child) = &self.lhs {
+            child.gen_locals(vars);
+        }
+        if let Some(child) = &self.rhs {
+            child.gen_locals(vars);
+        }
+
+    }
+}
 
 struct Input<'a> {
     token_iterator: Peekable<TokenIterator<'a>>,
@@ -324,8 +341,7 @@ impl <'a> Input<'a> {
                     return node;
                 },
                 Some(Token::Ident(name)) => {
-                    let index = name.as_bytes()[0] - b'a';
-                    let node = Node::new(NodeKind::LVar(index as i32), None, None);
+                    let node = Node::new(NodeKind::LVar(name.to_string()), None, None);
                     self.token_iterator.next();
                     return node;
                 },

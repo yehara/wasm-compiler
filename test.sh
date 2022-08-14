@@ -32,4 +32,5 @@ assert 0 '3*4>=13;'
 assert 1 '3*4<=12;'
 assert 0 '3*4<=11;'
 assert 6 'a=2;b=3;a*b;'
+assert 6 'aZ_1=2;BB=3;aZ_1*BB;'
 echo OK
