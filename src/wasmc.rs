@@ -49,7 +49,8 @@ enum NodeKind {
     LessThanOrEqual,
     Assign,
     LVar(String),
-    Num(i32)
+    Num(i32),
+    Return,
 }
 
 type Link = Option<Box<Node>>;
@@ -131,6 +132,9 @@ impl Node {
             NodeKind::LVar(name) => {
                 println!("   local.get ${}", name);
             },
+            NodeKind::Return => {
+                println!("   return");
+            }
             _ => ()
         }
     }
@@ -161,7 +165,7 @@ struct Input<'a> {
 
 /*
 program    = stmt*
-stmt       = expr ";"
+stmt       = "return" expr | expr ";"
 expr       = assign
 assign     = equality ("=" assign)?
 equality   = relational ("==" relational | "!=" relational)*
@@ -189,7 +193,16 @@ impl <'a> Input<'a> {
     }
 
     fn stmt(&mut self) -> Node {
-        let node = self.expr();
+        let node= match self.token_iterator.peek() {
+            Some(Token::Return) => {
+                self.token_iterator.next();
+                let lhs = self.expr();
+                Node::new(NodeKind::Return, Node::link(lhs),None)
+            },
+            _ => {
+                self.expr()
+            }
+        };
         self.expect(Token::Reserved(";"));
         node
     }
