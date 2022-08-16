@@ -19,17 +19,8 @@ impl<'a> Iterator for TokenIterator<'a> {
         if self.s.is_empty() {
             return None;
         }
-        if self.s.starts_with("return") {
-            let next = self.s.split_at(6).1.chars().next();
-            match next {
-                Some(c) => {
-                    if !is_ident_char(c) {
-                        self.s = self.s.split_at(6).1;
-                        return Some(Token::Return);
-                    }
-                },
-                _ => {}
-            }
+        if self.consume_keyword("return") {
+            return Some(Token::Return);
         }
         if self.s.starts_with("==") {
             self.s = self.s.split_at(2).1;
@@ -102,6 +93,26 @@ impl<'a> Iterator for TokenIterator<'a> {
         }
         panic!("Invalid token stream")
     }
+}
+
+impl TokenIterator<'_> {
+
+    fn consume_keyword(&mut self, word: &str) -> bool {
+        let len = word.len();
+        if self.s.starts_with(word) {
+            let next = self.s.split_at(len).1.chars().next();
+            match next {
+                Some(c) => {
+                    if !is_ident_char(c) {
+                        self.s = self.s.split_at(len).1;
+                        return true;
+                    }
+                },
+                _ => {}
+            }
+        }
+        return false;
+    }
 
 }
 
@@ -118,6 +129,7 @@ fn split_ident(s: &str) -> (&str, &str) {
 fn is_ident_char(c: char) -> bool {
     char::is_alphanumeric(c) || c == '_'
 }
+
 
 
 #[test]
