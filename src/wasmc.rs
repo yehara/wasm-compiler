@@ -36,7 +36,9 @@ pub fn compile(exp: &str) {
 
 #[derive(Debug)]
 #[derive(PartialEq)]
+#[derive(Default)]
 enum NodeKind {
+    #[default] Nop,
     Add,
     Sub,
     Mult,
@@ -51,21 +53,30 @@ enum NodeKind {
     LVar(String),
     Num(i32),
     Return,
+    If,
 }
 
 type Link = Option<Box<Node>>;
 
 #[derive(Debug)]
+#[derive(Default)]
 struct Node {
     kind: NodeKind,
     lhs: Link,
-    rhs: Link
+    rhs: Link,
+    then: Link,
+    els: Link,
 }
 
 impl Node {
     fn new(kind: NodeKind, lhs: Link, rhs: Link) -> Self {
-        Self { kind, lhs, rhs }
+        Self { kind, lhs, rhs, ..Default::default() }
     }
+
+    fn new_if(lhs: Link, then: Link, els: Link) -> Self {
+        Self { kind: NodeKind::If, lhs, then, els, ..Default::default() }
+    }
+
     fn link(node: Node) -> Link {
         Some(Box::new(node))
     }
@@ -83,9 +94,31 @@ impl Node {
         }
     }
 
+    fn gen_if(&self) {
+        self.lhs.as_ref().unwrap().gen();
+        println!("   (if");
+        println!("     (then ");
+        self.then.as_ref().unwrap().gen();
+        println!("     drop ");
+        println!("     )");
+        if let Some(els) = &self.els {
+            println!("     (else ");
+            els.gen();
+            println!("     drop ");
+            println!("     )");
+        }
+        println!("   )");
+        println!("    i32.const 0");
+    }
+
     fn gen(&self) {
         if self.kind == NodeKind::Assign {
             self.gen_lval();
+            return;
+        }
+
+        if self.kind == NodeKind::If {
+            self.gen_if();
             return;
         }
 
@@ -165,7 +198,9 @@ struct Input<'a> {
 
 /*
 program    = stmt*
-stmt       = "return" expr | expr ";"
+stmt       = "return" expr
+           | expr ";"
+           | if "(" expr ")" stmt ("else" stmt)?
 expr       = assign
 assign     = equality ("=" assign)?
 equality   = relational ("==" relational | "!=" relational)*
@@ -199,6 +234,21 @@ impl <'a> Input<'a> {
                 let lhs = self.expr();
                 Node::new(NodeKind::Return, Node::link(lhs),None)
             },
+            Some(Token::If) => {
+                self.token_iterator.next();
+                self.expect(Token::Reserved("("));
+                let lhs = self.expr();
+                self.expect(Token::Reserved(")"));
+                let then = self.stmt();
+                let els_link = match self.token_iterator.peek() {
+                    Some(Token::Else) => {
+                        self.token_iterator.next();
+                        Node::link(self.stmt())
+                    },
+                    _ => None
+                };
+                return Node::new_if(Node::link(lhs), Node::link(then), els_link);
+            }
             _ => {
                 self.expr()
             }
