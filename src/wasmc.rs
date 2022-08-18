@@ -64,6 +64,7 @@ struct Node {
     kind: NodeKind,
     lhs: Link,
     rhs: Link,
+    cond: Link,
     then: Link,
     els: Link,
 }
@@ -73,8 +74,8 @@ impl Node {
         Self { kind, lhs, rhs, ..Default::default() }
     }
 
-    fn new_if(lhs: Link, then: Link, els: Link) -> Self {
-        Self { kind: NodeKind::If, lhs, then, els, ..Default::default() }
+    fn new_if(cond: Link, then: Link, els: Link) -> Self {
+        Self { kind: NodeKind::If, cond, then, els, ..Default::default() }
     }
 
     fn link(node: Node) -> Link {
@@ -95,7 +96,7 @@ impl Node {
     }
 
     fn gen_if(&self) {
-        self.lhs.as_ref().unwrap().gen();
+        self.cond.as_ref().unwrap().gen();
         println!("   (if");
         println!("     (then ");
         self.then.as_ref().unwrap().gen();
@@ -237,7 +238,7 @@ impl <'a> Input<'a> {
             Some(Token::If) => {
                 self.token_iterator.next();
                 self.expect(Token::Reserved("("));
-                let lhs = self.expr();
+                let cond = self.expr();
                 self.expect(Token::Reserved(")"));
                 let then = self.stmt();
                 let els_link = match self.token_iterator.peek() {
@@ -247,7 +248,7 @@ impl <'a> Input<'a> {
                     },
                     _ => None
                 };
-                return Node::new_if(Node::link(lhs), Node::link(then), els_link);
+                return Node::new_if(Node::link(cond), Node::link(then), els_link);
             }
             _ => {
                 self.expr()
