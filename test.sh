@@ -40,4 +40,5 @@ assert 1 'a=5;if(a>3)return 1; else return 2;'
 assert 2 'a=3;if(a>3)return 1; else return 2;'
 assert 1 'a=5;if(a>3)b=1; else b=2;return b;'
 assert 2 'a=3;if(a>3)b=1; else b=2;return b;'
+assert 5 'a=1;while(a<=4)a=a+1;return a;'
 echo OK

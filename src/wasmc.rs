@@ -54,6 +54,7 @@ enum NodeKind {
     Num(i32),
     Return,
     If,
+    While,
 }
 
 type Link = Option<Box<Node>>;
@@ -67,6 +68,7 @@ struct Node {
     cond: Link,
     then: Link,
     els: Link,
+    body: Link
 }
 
 impl Node {
@@ -76,6 +78,10 @@ impl Node {
 
     fn new_if(cond: Link, then: Link, els: Link) -> Self {
         Self { kind: NodeKind::If, cond, then, els, ..Default::default() }
+    }
+
+    fn new_while(cond: Link, body: Link) -> Self {
+        Self { kind: NodeKind::While, cond, body, ..Default::default() }
     }
 
     fn link(node: Node) -> Link {
@@ -112,6 +118,21 @@ impl Node {
         println!("    i32.const 0");
     }
 
+    fn gen_while(&self) {
+        println!("   (block $a");
+        println!("     (loop $b");
+        self.cond.as_ref().unwrap().gen();
+        println!("       i32.const 0");
+        println!("       i32.eq");
+        println!("       br_if $a");
+        self.body.as_ref().unwrap().gen();
+        println!("       drop ");
+        println!("       br $b");
+        println!("     )");
+        println!("   )");
+        println!("    i32.const 0");
+    }
+
     fn gen(&self) {
         if self.kind == NodeKind::Assign {
             self.gen_lval();
@@ -120,6 +141,11 @@ impl Node {
 
         if self.kind == NodeKind::If {
             self.gen_if();
+            return;
+        }
+
+        if self.kind == NodeKind:: While {
+            self.gen_while();
             return;
         }
 
@@ -202,6 +228,7 @@ program    = stmt*
 stmt       = "return" expr
            | expr ";"
            | if "(" expr ")" stmt ("else" stmt)?
+           | while "(" expr ")" stmt
 expr       = assign
 assign     = equality ("=" assign)?
 equality   = relational ("==" relational | "!=" relational)*
@@ -249,6 +276,14 @@ impl <'a> Input<'a> {
                     _ => None
                 };
                 return Node::new_if(Node::link(cond), Node::link(then), els_link);
+            }
+            Some(Token::While) => {
+                self.token_iterator.next();
+                self.expect(Token::Reserved("("));
+                let cond = self.expr();
+                self.expect(Token::Reserved(")"));
+                let body = self.stmt();
+                return Node::new_while(Node::link(cond), Node::link(body));
             }
             _ => {
                 self.expr()

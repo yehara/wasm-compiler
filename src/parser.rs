@@ -7,6 +7,7 @@ pub enum Token<'a> {
     Return,
     If,
     Else,
+    While
 }
 
 pub struct TokenIterator<'a> {
@@ -29,6 +30,9 @@ impl<'a> Iterator for TokenIterator<'a> {
         }
         if self.consume_keyword("else") {
             return Some(Token::Else);
+        }
+        if self.consume_keyword("while") {
+            return Some(Token::While);
         }
         if self.s.starts_with("==") {
             self.s = self.s.split_at(2).1;
@@ -231,5 +235,22 @@ fn test_if_else() {
     assert_eq!(it.next(), Some(Token::Else));
     assert_eq!(it.next(), Some(Token::Return));
     assert_eq!(it.next(), Some(Token::Num(2)));
+    assert_eq!(it.next(), Some(Token::Reserved(";")));
+}
+
+#[test]
+fn test_while() {
+    let mut it = TokenIterator { s: "while(a>0)a=a-1;" }.peekable();
+    assert_eq!(it.next(), Some(Token::While));
+    assert_eq!(it.next(), Some(Token::Reserved("(")));
+    assert_eq!(it.next(), Some(Token::Ident("a")));
+    assert_eq!(it.next(), Some(Token::Reserved(">")));
+    assert_eq!(it.next(), Some(Token::Num(0)));
+    assert_eq!(it.next(), Some(Token::Reserved(")")));
+    assert_eq!(it.next(), Some(Token::Ident("a")));
+    assert_eq!(it.next(), Some(Token::Reserved("=")));
+    assert_eq!(it.next(), Some(Token::Ident("a")));
+    assert_eq!(it.next(), Some(Token::Reserved("-")));
+    assert_eq!(it.next(), Some(Token::Num(1)));
     assert_eq!(it.next(), Some(Token::Reserved(";")));
 }
