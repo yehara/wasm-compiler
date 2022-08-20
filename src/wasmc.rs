@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 use std::iter::Peekable;
+use std::sync::atomic::{AtomicU32, Ordering};
 use crate::parser::Token;
 use crate::parser::TokenIterator;
 
@@ -62,6 +63,7 @@ type Link = Option<Box<Node>>;
 #[derive(Debug)]
 #[derive(Default)]
 struct Node {
+    id: u32,
     kind: NodeKind,
     lhs: Link,
     rhs: Link,
@@ -71,17 +73,23 @@ struct Node {
     body: Link
 }
 
+static NODE_COUNTER: AtomicU32 = AtomicU32::new(0);
+
+fn node_id() -> u32 {
+    NODE_COUNTER.fetch_add(1, Ordering::SeqCst)
+}
+
 impl Node {
     fn new(kind: NodeKind, lhs: Link, rhs: Link) -> Self {
-        Self { kind, lhs, rhs, ..Default::default() }
+        Self { id: node_id(), kind, lhs, rhs, ..Default::default() }
     }
 
     fn new_if(cond: Link, then: Link, els: Link) -> Self {
-        Self { kind: NodeKind::If, cond, then, els, ..Default::default() }
+        Self { id: node_id(), kind: NodeKind::If, cond, then, els, ..Default::default() }
     }
 
     fn new_while(cond: Link, body: Link) -> Self {
-        Self { kind: NodeKind::While, cond, body, ..Default::default() }
+        Self { id: node_id(), kind: NodeKind::While, cond, body, ..Default::default() }
     }
 
     fn link(node: Node) -> Link {
@@ -119,15 +127,15 @@ impl Node {
     }
 
     fn gen_while(&self) {
-        println!("   (block $a");
-        println!("     (loop $b");
+        println!("   (block $block{}", self.id);
+        println!("     (loop $loop{}", self.id);
         self.cond.as_ref().unwrap().gen();
         println!("       i32.const 0");
         println!("       i32.eq");
-        println!("       br_if $a");
+        println!("       br_if $block{}", self.id);
         self.body.as_ref().unwrap().gen();
         println!("       drop ");
-        println!("       br $b");
+        println!("       br $loop{}", self.id);
         println!("     )");
         println!("   )");
         println!("    i32.const 0");
