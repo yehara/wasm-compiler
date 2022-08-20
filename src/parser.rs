@@ -7,7 +7,8 @@ pub enum Token<'a> {
     Return,
     If,
     Else,
-    While
+    While,
+    For,
 }
 
 pub struct TokenIterator<'a> {
@@ -33,6 +34,9 @@ impl<'a> Iterator for TokenIterator<'a> {
         }
         if self.consume_keyword("while") {
             return Some(Token::While);
+        }
+        if self.consume_keyword("for") {
+            return Some(Token::For);
         }
         if self.s.starts_with("==") {
             self.s = self.s.split_at(2).1;

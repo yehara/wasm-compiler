@@ -56,6 +56,7 @@ enum NodeKind {
     Return,
     If,
     While,
+    For,
 }
 
 type Link = Option<Box<Node>>;
@@ -67,10 +68,15 @@ struct Node {
     kind: NodeKind,
     lhs: Link,
     rhs: Link,
+    // "if" "(" cond ")" then "else" els
+    // "while" "(" cond ")" body
+    // "for" "(" init ";" cond ";" inc ")" body
     cond: Link,
     then: Link,
     els: Link,
-    body: Link
+    body: Link,
+    init: Link,
+    inc: Link,
 }
 
 static NODE_COUNTER: AtomicU32 = AtomicU32::new(0);
@@ -90,6 +96,10 @@ impl Node {
 
     fn new_while(cond: Link, body: Link) -> Self {
         Self { id: node_id(), kind: NodeKind::While, cond, body, ..Default::default() }
+    }
+
+    fn new_for(init: Link, cond: Link, inc: Link, body: Link) -> Self {
+        Self { id: node_id(), kind: NodeKind::For, init, cond, inc, body, ..Default::default() }
     }
 
     fn link(node: Node) -> Link {
@@ -141,6 +151,31 @@ impl Node {
         println!("    i32.const 0");
     }
 
+    fn gen_for(&self) {
+        if let Some(init) = &self.init {
+            init.gen();
+            println!("     drop ");
+        }
+        println!("   (block $block{}", self.id);
+        println!("     (loop $loop{}", self.id);
+        if let Some(cond) = &self.cond {
+            cond.gen();
+            println!("       i32.const 0");
+            println!("       i32.eq");
+            println!("       br_if $block{}", self.id);
+        }
+        self.body.as_ref().unwrap().gen();
+        println!("       drop ");
+        if let Some(inc) = &self.inc {
+            inc.gen();
+            println!("     drop ");
+        }
+        println!("       br $loop{}", self.id);
+        println!("     )");
+        println!("   )");
+        println!("    i32.const 0");
+    }
+
     fn gen(&self) {
         if self.kind == NodeKind::Assign {
             self.gen_lval();
@@ -152,8 +187,13 @@ impl Node {
             return;
         }
 
-        if self.kind == NodeKind:: While {
+        if self.kind == NodeKind::While {
             self.gen_while();
+            return;
+        }
+
+        if self.kind == NodeKind::For {
+            self.gen_for();
             return;
         }
 
@@ -223,6 +263,24 @@ impl Node {
         if let Some(child) = &self.rhs {
             child.gen_locals(vars);
         }
+        if let Some(child) = &self.init {
+            child.gen_locals(vars);
+        }
+        if let Some(child) = &self.cond {
+            child.gen_locals(vars);
+        }
+        if let Some(child) = &self.inc {
+            child.gen_locals(vars);
+        }
+        if let Some(child) = &self.body {
+            child.gen_locals(vars);
+        }
+        if let Some(child) = &self.then {
+            child.gen_locals(vars);
+        }
+        if let Some(child) = &self.els {
+            child.gen_locals(vars);
+        }
 
     }
 }
@@ -237,6 +295,7 @@ stmt       = "return" expr
            | expr ";"
            | if "(" expr ")" stmt ("else" stmt)?
            | while "(" expr ")" stmt
+           | for "(" expr? ";" expr? ";" expr? ")" stmt
 expr       = assign
 assign     = equality ("=" assign)?
 equality   = relational ("==" relational | "!=" relational)*
@@ -293,6 +352,46 @@ impl <'a> Input<'a> {
                 let body = self.stmt();
                 return Node::new_while(Node::link(cond), Node::link(body));
             }
+            Some(Token::For) => {
+                self.token_iterator.next();
+                self.expect(Token::Reserved("("));
+                let init_link = match self.token_iterator.peek() {
+                    Some(Token::Reserved(";")) => {
+                        self.token_iterator.next();
+                        None
+                    },
+                    _ => {
+                        let init = self.expr();
+                        self.expect(Token::Reserved(";"));
+                        Node::link(init)
+                    }
+                };
+                let cond_link = match self.token_iterator.peek() {
+                    Some(Token::Reserved(";")) => {
+                        self.token_iterator.next();
+                        None
+                    },
+                    _ => {
+                        let cond = self.expr();
+                        self.expect(Token::Reserved(";"));
+                        Node::link(cond)
+                    }
+                };
+                let inc_link = match self.token_iterator.peek() {
+                    Some(Token::Reserved(")")) => {
+                        self.token_iterator.next();
+                        None
+                    },
+                    _ => {
+                        let inc = self.expr();
+                        self.expect(Token::Reserved(")"));
+                        Node::link(inc)
+                    }
+                };
+                let body = self.stmt();
+                return Node::new_for(init_link, cond_link, inc_link,Node::link(body));
+            }
+
             _ => {
                 self.expr()
             }
