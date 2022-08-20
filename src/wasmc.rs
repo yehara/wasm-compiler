@@ -57,6 +57,7 @@ enum NodeKind {
     If,
     While,
     For,
+    Block
 }
 
 type Link = Option<Box<Node>>;
@@ -77,6 +78,7 @@ struct Node {
     body: Link,
     init: Link,
     inc: Link,
+    stmts: Vec<Link>,
 }
 
 static NODE_COUNTER: AtomicU32 = AtomicU32::new(0);
@@ -100,6 +102,10 @@ impl Node {
 
     fn new_for(init: Link, cond: Link, inc: Link, body: Link) -> Self {
         Self { id: node_id(), kind: NodeKind::For, init, cond, inc, body, ..Default::default() }
+    }
+
+    fn new_block(stmts: Vec<Link>) -> Self {
+        Self { id: node_id(), kind: NodeKind::Block, stmts, ..Default::default() }
     }
 
     fn link(node: Node) -> Link {
@@ -176,6 +182,14 @@ impl Node {
         println!("    i32.const 0");
     }
 
+    fn gen_block(&self) {
+        for stmt in &self.stmts {
+            stmt.as_ref().unwrap().gen();
+            println!("     drop ");
+        }
+        println!("    i32.const 0");
+    }
+
     fn gen(&self) {
         if self.kind == NodeKind::Assign {
             self.gen_lval();
@@ -194,6 +208,11 @@ impl Node {
 
         if self.kind == NodeKind::For {
             self.gen_for();
+            return;
+        }
+
+        if self.kind == NodeKind::Block {
+            self.gen_block();
             return;
         }
 
@@ -296,6 +315,7 @@ stmt       = "return" expr
            | if "(" expr ")" stmt ("else" stmt)?
            | while "(" expr ")" stmt
            | for "(" expr? ";" expr? ";" expr? ")" stmt
+           | "{" stmt* "}"
 expr       = assign
 assign     = equality ("=" assign)?
 equality   = relational ("==" relational | "!=" relational)*
@@ -391,7 +411,19 @@ impl <'a> Input<'a> {
                 let body = self.stmt();
                 return Node::new_for(init_link, cond_link, inc_link,Node::link(body));
             }
-
+            Some(Token::Reserved("{")) => {
+                self.token_iterator.next();
+                let mut stmts:Vec<Link> = Vec::new();
+                loop {
+                    if self.token_iterator.peek() == Some(&Token::Reserved("}")) {
+                        self.token_iterator.next();
+                        break;
+                    }
+                    let stmt = self.stmt();
+                    stmts.push(Node::link(stmt));
+                }
+                return Node::new_block(stmts);
+            }
             _ => {
                 self.expr()
             }
