@@ -258,3 +258,30 @@ fn test_while() {
     assert_eq!(it.next(), Some(Token::Num(1)));
     assert_eq!(it.next(), Some(Token::Reserved(";")));
 }
+
+#[test]
+fn test_for() {
+    let mut it = TokenIterator { s: "for(a=0;a<3;a=a+1)b=b+a;" }.peekable();
+    assert_eq!(it.next(), Some(Token::For));
+    assert_eq!(it.next(), Some(Token::Reserved("(")));
+    assert_eq!(it.next(), Some(Token::Ident("a")));
+    assert_eq!(it.next(), Some(Token::Reserved("=")));
+    assert_eq!(it.next(), Some(Token::Num(0)));
+    assert_eq!(it.next(), Some(Token::Reserved(";")));
+    assert_eq!(it.next(), Some(Token::Ident("a")));
+    assert_eq!(it.next(), Some(Token::Reserved("<")));
+    assert_eq!(it.next(), Some(Token::Num(3)));
+    assert_eq!(it.next(), Some(Token::Reserved(";")));
+    assert_eq!(it.next(), Some(Token::Ident("a")));
+    assert_eq!(it.next(), Some(Token::Reserved("=")));
+    assert_eq!(it.next(), Some(Token::Ident("a")));
+    assert_eq!(it.next(), Some(Token::Reserved("+")));
+    assert_eq!(it.next(), Some(Token::Num(1)));
+    assert_eq!(it.next(), Some(Token::Reserved(")")));
+    assert_eq!(it.next(), Some(Token::Ident("b")));
+    assert_eq!(it.next(), Some(Token::Reserved("=")));
+    assert_eq!(it.next(), Some(Token::Ident("b")));
+    assert_eq!(it.next(), Some(Token::Reserved("+")));
+    assert_eq!(it.next(), Some(Token::Ident("a")));
+    assert_eq!(it.next(), Some(Token::Reserved(";")));
+}
