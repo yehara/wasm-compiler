@@ -11,24 +11,9 @@ pub fn compile(exp: &str) {
     //println!("{:?}", node);
 
     println!("(module");
-    println!("  (func $main (result i32)");
-
-    let mut first = true;
-
-    let mut vars : HashSet<String> = HashSet::new();
     for node in &nodes {
-        node.gen_locals(&mut vars);
+        node.gen_func();
     }
-    for node in &nodes {
-        if !first {
-            println!("   drop");
-        } else {
-            first = false;
-        }
-        node.gen();
-    }
-
-    println!("  )");
     println!("  (export \"main\" (func $main))");
     println!(")");
 
@@ -57,7 +42,8 @@ enum NodeKind {
     If,
     While,
     For,
-    Block
+    Block,
+    Function(String),
 }
 
 type Link = Option<Box<Node>>;
@@ -79,6 +65,9 @@ struct Node {
     init: Link,
     inc: Link,
     stmts: Vec<Link>,
+
+    // Function
+    params: Vec<String>,
 }
 
 static NODE_COUNTER: AtomicU32 = AtomicU32::new(0);
@@ -108,8 +97,23 @@ impl Node {
         Self { id: node_id(), kind: NodeKind::Block, stmts, ..Default::default() }
     }
 
+    fn new_function(name: String, params: Vec<String>, body: Link) -> Self {
+        Self { id: node_id(), kind: NodeKind::Function(name), params,  body, ..Default::default() }
+    }
+
     fn link(node: Node) -> Link {
         Some(Box::new(node))
+    }
+
+    fn gen_func(&self) {
+        let name = if let NodeKind::Function(name) = &self.kind { name } else {
+            panic!("関数ではありません");
+        };
+        println!("  (func ${} (result i32)", name);
+        let mut vars : HashSet<String> = HashSet::new();
+        self.gen_locals(&mut vars);
+        self.body.as_ref().unwrap().gen_block();
+        println!("  )");
     }
 
     fn gen_lval(&self) {
@@ -300,6 +304,9 @@ impl Node {
         if let Some(child) = &self.els {
             child.gen_locals(vars);
         }
+        for stmt in &self.stmts {
+            stmt.as_ref().unwrap().gen_locals(vars);
+        }
 
     }
 }
@@ -309,13 +316,15 @@ struct Input<'a> {
 }
 
 /*
-program    = stmt*
+program    = func*
+func       = ident "(" (ident ( "," ident)* )?  ")" "{" stmt* "}"
 stmt       = "return" expr
            | expr ";"
            | if "(" expr ")" stmt ("else" stmt)?
            | while "(" expr ")" stmt
            | for "(" expr? ";" expr? ";" expr? ")" stmt
-           | "{" stmt* "}"
+           | block
+block      = "{" stmt* "}"
 expr       = assign
 assign     = equality ("=" assign)?
 equality   = relational ("==" relational | "!=" relational)*
@@ -337,9 +346,45 @@ impl <'a> Input<'a> {
     fn program(&mut self) -> Vec<Node> {
         let mut nodes = Vec::new();
         while self.token_iterator.peek() != None {
-            nodes.push(self.stmt());
+            nodes.push(self.func());
         }
         nodes
+    }
+
+    fn func(&mut self) -> Node {
+        match self.token_iterator.next() {
+            Some(Token::Ident(func_name)) => {
+                let mut params = Vec::new();
+
+                self.expect(Token::Reserved("("));
+                match self.token_iterator.next() {
+                    Some(Token::Reserved(")")) => {}
+                    Some(Token::Ident(param_name)) => {
+                        params.push(param_name.to_string());
+                        while self.token_iterator.peek() != Some(&Token::Reserved("(")) {
+                            self.expect(Token::Reserved(","));
+                            match self.token_iterator.next() {
+                                Some(Token::Ident(param_name)) => {
+                                    params.push(param_name.to_string());
+                                }
+                                _ => {
+                                    panic!("関数のパラメータ宣言にエラーがあります")
+                                }
+                            }
+                        }
+                        self.token_iterator.next();
+                    },
+                    _ => {
+                        panic!("関数のパラメータ宣言にエラーがあります")
+                    }
+                }
+                let block = self.block();
+                return Node::new_function(func_name.to_string(), params, Node::link(block));
+            },
+            _ => {
+                panic!("関数宣言ではありません");
+            }
+        }
     }
 
     fn stmt(&mut self) -> Node {
@@ -412,17 +457,7 @@ impl <'a> Input<'a> {
                 return Node::new_for(init_link, cond_link, inc_link,Node::link(body));
             }
             Some(Token::Reserved("{")) => {
-                self.token_iterator.next();
-                let mut stmts:Vec<Link> = Vec::new();
-                loop {
-                    if self.token_iterator.peek() == Some(&Token::Reserved("}")) {
-                        self.token_iterator.next();
-                        break;
-                    }
-                    let stmt = self.stmt();
-                    stmts.push(Node::link(stmt));
-                }
-                return Node::new_block(stmts);
+                return self.block();
             }
             _ => {
                 self.expr()
@@ -430,6 +465,20 @@ impl <'a> Input<'a> {
         };
         self.expect(Token::Reserved(";"));
         node
+    }
+
+    fn block(&mut self) -> Node {
+        self.expect(Token::Reserved("{"));
+        let mut stmts:Vec<Link> = Vec::new();
+        loop {
+            if self.token_iterator.peek() == Some(&Token::Reserved("}")) {
+                self.token_iterator.next();
+                break;
+            }
+            let stmt = self.stmt();
+            stmts.push(Node::link(stmt));
+        }
+        return Node::new_block(stmts);
     }
 
     fn expr(&mut self) -> Node {

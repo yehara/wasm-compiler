@@ -102,6 +102,10 @@ impl<'a> Iterator for TokenIterator<'a> {
             self.s = self.s.split_at(1).1;
             return Some(Token::Reserved("}"));
         }
+        if self.s.starts_with(",") {
+            self.s = self.s.split_at(1).1;
+            return Some(Token::Reserved(","));
+        }
 
         match self.s.chars().next() {
             Some('a'..='z' | 'A'..='Z') => {
@@ -310,3 +314,22 @@ fn test_block() {
     assert_eq!(it.next(), Some(Token::Reserved(";")));
     assert_eq!(it.next(), Some(Token::Reserved("}")));
 }
+
+#[test]
+fn test_func() {
+    let mut it = TokenIterator { s: "add(a, b){return a+b;}" }.peekable();
+    assert_eq!(it.next(), Some(Token::Ident("add")));
+    assert_eq!(it.next(), Some(Token::Reserved("(")));
+    assert_eq!(it.next(), Some(Token::Ident("a")));
+    assert_eq!(it.next(), Some(Token::Reserved(",")));
+    assert_eq!(it.next(), Some(Token::Ident("b")));
+    assert_eq!(it.next(), Some(Token::Reserved(")")));
+    assert_eq!(it.next(), Some(Token::Reserved("{")));
+    assert_eq!(it.next(), Some(Token::Return));
+    assert_eq!(it.next(), Some(Token::Ident("a")));
+    assert_eq!(it.next(), Some(Token::Reserved("+")));
+    assert_eq!(it.next(), Some(Token::Ident("b")));
+    assert_eq!(it.next(), Some(Token::Reserved(";")));
+    assert_eq!(it.next(), Some(Token::Reserved("}")));
+}
+
