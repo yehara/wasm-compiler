@@ -44,6 +44,7 @@ enum NodeKind {
     For,
     Block,
     Function(String),
+    Call(String),
 }
 
 type Link = Option<Box<Node>>;
@@ -68,6 +69,8 @@ struct Node {
 
     // Function
     params: Vec<String>,
+    // Call
+    args: Vec<Link>,
 }
 
 static NODE_COUNTER: AtomicU32 = AtomicU32::new(0);
@@ -100,7 +103,9 @@ impl Node {
     fn new_function(name: String, params: Vec<String>, body: Link) -> Self {
         Self { id: node_id(), kind: NodeKind::Function(name), params,  body, ..Default::default() }
     }
-
+    fn new_call(name: String, args: Vec<Link>) -> Self {
+        Self { id: node_id(), kind: NodeKind::Call(name), args, ..Default::default() }
+    }
     fn link(node: Node) -> Link {
         Some(Box::new(node))
     }
@@ -332,7 +337,9 @@ relational = add ("<" add | "<=" add | ">" add | ">=" add)*
 add        = mul ("+" mul | "-" mul)*
 mul        = unary ("*" unary | "/" unary)*
 unary      = ("+" | "-")? primary
-primary    = num | ident | "(" expr ")"
+primary    = num
+           | ident ("(" (expr ( "," expr)* )? ")")?
+           | "(" expr ")"
  */
 impl <'a> Input<'a> {
     fn new(input: &'a str) -> Self {
@@ -614,27 +621,43 @@ impl <'a> Input<'a> {
     }
 
     fn primary(&mut self) -> Node {
-        loop {
-            match self.token_iterator.peek() {
-                Some(Token::Reserved("(")) => {
-                    self.token_iterator.next();
-                    let node = self.expr();
-                    self.expect(Token::Reserved(")"));
-                    return node
-                },
-                Some(Token::Num(num)) => {
-                    let node = Node::new(NodeKind::Num(*num), None, None);
-                    self.token_iterator.next();
-                    return node;
-                },
-                Some(Token::Ident(name)) => {
-                    let node = Node::new(NodeKind::LVar(name.to_string()), None, None);
-                    self.token_iterator.next();
-                    return node;
-                },
-                _ => {
-                    panic!("factor error");
+        match self.token_iterator.peek() {
+            Some(Token::Reserved("(")) => {
+                self.token_iterator.next();
+                let node = self.expr();
+                self.expect(Token::Reserved(")"));
+                return node
+            },
+            Some(Token::Num(num)) => {
+                let node = Node::new(NodeKind::Num(*num), None, None);
+                self.token_iterator.next();
+                return node;
+            },
+            Some(Token::Ident(name)) => {
+                let name_str = name.to_string();
+                self.token_iterator.next();
+                match self.token_iterator.peek() {
+                    Some(Token::Reserved("(")) => {
+                        let mut args = Vec::new();
+                        match self.token_iterator.next() {
+                            Some(Token::Reserved(")")) => {}
+                            _ => {
+                                args.push(Node::link(self.expr()));
+                                while self.token_iterator.peek() != Some(&Token::Reserved(")")) {
+                                    self.expect(Token::Reserved(","));
+                                    args.push(Node::link(self.expr()));
+                                }
+                            }
+                        }
+                        return Node::new_call(name_str, args);
+                    }
+                    _ => {
+                        return Node::new(NodeKind::LVar(name_str), None, None);
+                    }
                 }
+            },
+            _ => {
+                panic!("factor error");
             }
         }
     }
