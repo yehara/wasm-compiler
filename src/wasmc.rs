@@ -114,9 +114,15 @@ impl Node {
         let name = if let NodeKind::Function(name) = &self.kind { name } else {
             panic!("関数ではありません");
         };
-        println!("  (func ${} (result i32)", name);
+        println!("  (func ${}", name);
+        let mut param_set : HashSet<String> = HashSet::new();
+        for param in self.params.iter() {
+            println!("   (param ${} i32)", param);
+            param_set.insert(param.to_string());
+        }
+        println!("    (result i32)");
         let mut vars : HashSet<String> = HashSet::new();
-        self.gen_locals(&mut vars);
+        self.gen_locals(&mut param_set, &mut vars);
         self.body.as_ref().unwrap().gen_block();
         println!("  )");
     }
@@ -290,42 +296,51 @@ impl Node {
         }
     }
 
-    fn gen_locals(&self, vars: &mut HashSet<String>) {
+    fn gen_locals(&self, params: &mut HashSet<String>, vars: &mut HashSet<String>) {
         match &self.kind {
             NodeKind::LVar(name) => {
-                if !vars.contains(name) {
+                if !params.contains(name) && !vars.contains(name) {
                     vars.insert(name.to_string());
                     println!("   (local ${} i32)", name);
                 }
             },
+            NodeKind::Function(_) => {
+                for param in &self.params {
+                    let name = param.as_str();
+                    if !params.contains(name) && !vars.contains(name) {
+                        vars.insert(name.to_string());
+                        println!("   (local ${} i32)", name);
+                    }
+                }
+            }
             _ => ()
         }
         if let Some(child) = &self.lhs {
-            child.gen_locals(vars);
+            child.gen_locals(params, vars);
         }
         if let Some(child) = &self.rhs {
-            child.gen_locals(vars);
+            child.gen_locals(params, vars);
         }
         if let Some(child) = &self.init {
-            child.gen_locals(vars);
+            child.gen_locals(params, vars);
         }
         if let Some(child) = &self.cond {
-            child.gen_locals(vars);
+            child.gen_locals(params, vars);
         }
         if let Some(child) = &self.inc {
-            child.gen_locals(vars);
+            child.gen_locals(params, vars);
         }
         if let Some(child) = &self.body {
-            child.gen_locals(vars);
+            child.gen_locals(params, vars);
         }
         if let Some(child) = &self.then {
-            child.gen_locals(vars);
+            child.gen_locals(params, vars);
         }
         if let Some(child) = &self.els {
-            child.gen_locals(vars);
+            child.gen_locals(params, vars);
         }
         for stmt in &self.stmts {
-            stmt.as_ref().unwrap().gen_locals(vars);
+            stmt.as_ref().unwrap().gen_locals(params, vars);
         }
 
     }
@@ -383,7 +398,7 @@ impl <'a> Input<'a> {
                     Some(Token::Reserved(")")) => {}
                     Some(Token::Ident(param_name)) => {
                         params.push(param_name.to_string());
-                        while self.token_iterator.peek() != Some(&Token::Reserved("(")) {
+                        while self.token_iterator.peek() != Some(&Token::Reserved(")")) {
                             self.expect(Token::Reserved(","));
                             match self.token_iterator.next() {
                                 Some(Token::Ident(param_name)) => {
@@ -655,7 +670,7 @@ impl <'a> Input<'a> {
                     Some(Token::Reserved("(")) => {
                         self.token_iterator.next();
                         let mut args = Vec::new();
-                        match self.token_iterator.next() {
+                        match self.token_iterator.peek() {
                             Some(Token::Reserved(")")) => {}
                             _ => {
                                 args.push(Node::link(self.expr()));
@@ -665,6 +680,7 @@ impl <'a> Input<'a> {
                                 }
                             }
                         }
+                        self.token_iterator.next();
                         return Node::new_call(name_str, args);
                     }
                     _ => {
