@@ -199,6 +199,16 @@ impl Node {
         println!("    i32.const 0");
     }
 
+    fn gen_call(&self) {
+        let name = if let NodeKind::Call(name) = &self.kind { name } else {
+            panic!("関数呼び出しではありません");
+        };
+        for arg in &self.args {
+            arg.as_ref().unwrap().gen();
+        }
+        println!("    call ${}", name);
+    }
+
     fn gen(&self) {
         if self.kind == NodeKind::Assign {
             self.gen_lval();
@@ -222,6 +232,11 @@ impl Node {
 
         if self.kind == NodeKind::Block {
             self.gen_block();
+            return;
+        }
+
+        if let NodeKind::Call(_) = self.kind {
+            self.gen_call();
             return;
         }
 
@@ -638,6 +653,7 @@ impl <'a> Input<'a> {
                 self.token_iterator.next();
                 match self.token_iterator.peek() {
                     Some(Token::Reserved("(")) => {
+                        self.token_iterator.next();
                         let mut args = Vec::new();
                         match self.token_iterator.next() {
                             Some(Token::Reserved(")")) => {}
