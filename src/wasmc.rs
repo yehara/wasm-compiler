@@ -117,7 +117,7 @@ impl Node {
         println!("  (func ${}", name);
         let mut param_set : HashSet<String> = HashSet::new();
         for param in self.params.iter() {
-            println!("   (param ${} i32)", param);
+            println!("    (param ${} i32)", param);
             param_set.insert(param.to_string());
         }
         println!("    (result i32)");
@@ -142,65 +142,65 @@ impl Node {
 
     fn gen_if(&self) {
         self.cond.as_ref().unwrap().gen();
-        println!("   (if");
-        println!("     (then ");
+        println!("    (if");
+        println!("      (then");
         self.then.as_ref().unwrap().gen();
-        println!("     drop ");
-        println!("     )");
+        println!("      drop");
+        println!("      )");
         if let Some(els) = &self.els {
-            println!("     (else ");
+            println!("      (else");
             els.gen();
-            println!("     drop ");
-            println!("     )");
+            println!("      drop");
+            println!("      )");
         }
-        println!("   )");
+        println!("    )");
         println!("    i32.const 0");
     }
 
     fn gen_while(&self) {
-        println!("   (block $block{}", self.id);
-        println!("     (loop $loop{}", self.id);
+        println!("    (block $block{}", self.id);
+        println!("      (loop $loop{}", self.id);
         self.cond.as_ref().unwrap().gen();
-        println!("       i32.const 0");
-        println!("       i32.eq");
-        println!("       br_if $block{}", self.id);
+        println!("        i32.const 0");
+        println!("        i32.eq");
+        println!("        br_if $block{}", self.id);
         self.body.as_ref().unwrap().gen();
-        println!("       drop ");
-        println!("       br $loop{}", self.id);
-        println!("     )");
-        println!("   )");
+        println!("        drop ");
+        println!("        br $loop{}", self.id);
+        println!("      )");
+        println!("    )");
         println!("    i32.const 0");
     }
 
     fn gen_for(&self) {
         if let Some(init) = &self.init {
             init.gen();
-            println!("     drop ");
+            println!("    drop");
         }
-        println!("   (block $block{}", self.id);
-        println!("     (loop $loop{}", self.id);
+        println!("    (block $block{}", self.id);
+        println!("      (loop $loop{}", self.id);
         if let Some(cond) = &self.cond {
             cond.gen();
-            println!("       i32.const 0");
-            println!("       i32.eq");
-            println!("       br_if $block{}", self.id);
+            println!("        i32.const 0");
+            println!("        i32.eq");
+            println!("        br_if $block{}", self.id);
         }
         self.body.as_ref().unwrap().gen();
-        println!("       drop ");
+        println!("        drop");
         if let Some(inc) = &self.inc {
             inc.gen();
-            println!("     drop ");
+            println!("        drop");
         }
-        println!("       br $loop{}", self.id);
-        println!("     )");
-        println!("   )");
+        println!("        br $loop{}", self.id);
+        println!("      )");
+        println!("    )");
         println!("    i32.const 0");
     }
 
     fn gen_block(&self) {
         for stmt in &self.stmts {
             stmt.as_ref().unwrap().gen();
-            println!("     drop ");
+            println!("    drop");
         }
         println!("    i32.const 0");
     }
@@ -254,43 +254,43 @@ impl Node {
         }
         match &self.kind {
             NodeKind::Num(num) => {
-                println!("   i32.const {}", num);
+                println!("    i32.const {}", num);
             },
             NodeKind::Add => {
-                println!("   i32.add");
+                println!("    i32.add");
             },
             NodeKind::Sub => {
-                println!("   i32.sub");
+                println!("    i32.sub");
             },
             NodeKind::Mult => {
-                println!("   i32.mul");
+                println!("    i32.mul");
             },
             NodeKind::Div => {
-                println!("   i32.div_s");
+                println!("    i32.div_s");
             },
             NodeKind::Equal => {
-                println!("   i32.eq");
+                println!("    i32.eq");
             },
             NodeKind::NotEqual => {
-                println!("   i32.ne");
+                println!("    i32.ne");
             },
             NodeKind::GreaterThan => {
-                println!("   i32.gt_s");
+                println!("    i32.gt_s");
             },
             NodeKind::GreaterThanOrEqual => {
-                println!("   i32.ge_s");
+                println!("    i32.ge_s");
             },
             NodeKind::LessThan => {
-                println!("   i32.lt_s");
+                println!("    i32.lt_s");
             },
             NodeKind::LessThanOrEqual => {
-                println!("   i32.le_s");
+                println!("    i32.le_s");
             },
             NodeKind::LVar(name) => {
-                println!("   local.get ${}", name);
+                println!("    local.get ${}", name);
             },
             NodeKind::Return => {
-                println!("   return");
+                println!("    return");
             }
             _ => ()
         }
@@ -301,7 +301,7 @@ impl Node {
             NodeKind::LVar(name) => {
                 if !params.contains(name) && !vars.contains(name) {
                     vars.insert(name.to_string());
-                    println!("   (local ${} i32)", name);
+                    println!("    (local ${} i32)", name);
                 }
             },
             NodeKind::Function(_) => {
@@ -309,7 +309,7 @@ impl Node {
                     let name = param.as_str();
                     if !params.contains(name) && !vars.contains(name) {
                         vars.insert(name.to_string());
-                        println!("   (local ${} i32)", name);
+                        println!("    (local ${} i32)", name);
                     }
                 }
             }
