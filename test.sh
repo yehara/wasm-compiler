@@ -45,4 +45,8 @@ assert 15 'main(){a=0;for(i=1;i<=5;i=i+1)a=a+i;return a;}'
 assert 20 'main(){a=0;for(i=1;i<=5;i=i+1){a=a+i;a=a+1;}return a;}'
 assert 1 'main(){return sub();}sub(){return 1;}'
 assert 3 'main(){return sub(5,2);}sub(a,b){return a-b;}'
+assert 55 'main(){return fib1(10);}fib1(a){if(a<=1){return a;}return fib1(a-2)+fib1(a-1);}'
+assert 55 'main(){return fib2(10);}fib2(a){if(a<=1){return a;}p0=0;p1=1;for(i=2;i<=a;i=i+1){p2=p0+p1;p0=p1;p1=p2;}return p2;}'
+assert 60 'main(){return lcm(12,20);}lcm(a,b){return a/gcd(a,b)*b;}gcd(a,b){if(a<b)return gcd(b,a);if(a==b)return a;if(b==0)return a;return gcd(b,a-(a/b*b));}'
+assert 2 'main(){return gcd(6,4);}lcm(a,b){return a/gcd(a,b)*b;}gcd(a,b){if(a<b)return gcd(b,a);if(a==b)return a;if(b==0)return a;return gcd(b, a-(a/b*b));}'
 echo OK

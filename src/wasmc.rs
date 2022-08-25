@@ -132,7 +132,7 @@ impl Node {
             NodeKind::LVar(name) => {
                 self.rhs.as_ref().unwrap().gen();
                 // 変数に保存しつつ、スタックに残しておく
-                println!("   local.tee ${}", name);
+                println!("    local.tee ${}", name);
             },
             _ => {
                 panic!("代入の左辺値が変数ではありません");
