@@ -15,6 +15,25 @@ pub struct TokenIterator<'a> {
     pub s: &'a str,
 }
 
+struct Keyword {
+    word: &'static str,
+    token: Token<'static>,
+}
+
+// 予約語
+const KEYWORDS: [Keyword; 5] = [
+    Keyword{ word: "return", token: Token::Return },
+    Keyword{ word: "if", token: Token::If },
+    Keyword{ word: "else", token: Token::Else },
+    Keyword{ word: "while", token: Token::While },
+    Keyword{ word: "for", token: Token::For },
+];
+
+// 演算子などの記号。長い順に並べる
+const RESERVED_TOKENS: [&str; 17] = [
+    "==", "!=", "<=", ">=", "<", ">", "(", ")", "{", "}", "+", "-", "*", "/", "=", ";", ","
+];
+
 impl<'a> Iterator for TokenIterator<'a> {
     type Item = Token<'a>;
 
@@ -23,88 +42,18 @@ impl<'a> Iterator for TokenIterator<'a> {
         if self.s.is_empty() {
             return None;
         }
-        if self.consume_keyword("return") {
-            return Some(Token::Return);
+
+        for keyword in KEYWORDS {
+            if self.consume_keyword(keyword.word) {
+                return Some(keyword.token);
+            }
         }
-        if self.consume_keyword("if") {
-            return Some(Token::If);
-        }
-        if self.consume_keyword("else") {
-            return Some(Token::Else);
-        }
-        if self.consume_keyword("while") {
-            return Some(Token::While);
-        }
-        if self.consume_keyword("for") {
-            return Some(Token::For);
-        }
-        if self.s.starts_with("==") {
-            self.s = self.s.split_at(2).1;
-            return Some(Token::Reserved("=="));
-        }
-        if self.s.starts_with("!=") {
-            self.s = self.s.split_at(2).1;
-            return Some(Token::Reserved("!="));
-        }
-        if self.s.starts_with("<=") {
-            self.s = self.s.split_at(2).1;
-            return Some(Token::Reserved("<="));
-        }
-        if self.s.starts_with(">=") {
-            self.s = self.s.split_at(2).1;
-            return Some(Token::Reserved(">="));
-        }
-        if self.s.starts_with(">") {
-            self.s = self.s.split_at(1).1;
-            return Some(Token::Reserved(">"));
-        }
-        if self.s.starts_with("<") {
-            self.s = self.s.split_at(1).1;
-            return Some(Token::Reserved("<"));
-        }
-        if self.s.starts_with("(") {
-            self.s = self.s.split_at(1).1;
-            return Some(Token::Reserved("("));
-        }
-        if self.s.starts_with(")") {
-            self.s = self.s.split_at(1).1;
-            return Some(Token::Reserved(")"));
-        }
-        if self.s.starts_with("+") {
-            self.s = self.s.split_at(1).1;
-            return Some(Token::Reserved("+"));
-        }
-        if self.s.starts_with("-") {
-            self.s = self.s.split_at(1).1;
-            return Some(Token::Reserved("-"));
-        }
-        if self.s.starts_with("*") {
-            self.s = self.s.split_at(1).1;
-            return Some(Token::Reserved("*"));
-        }
-        if self.s.starts_with("/") {
-            self.s = self.s.split_at(1).1;
-            return Some(Token::Reserved("/"));
-        }
-        if self.s.starts_with("=") {
-            self.s = self.s.split_at(1).1;
-            return Some(Token::Reserved("="));
-        }
-        if self.s.starts_with(";") {
-            self.s = self.s.split_at(1).1;
-            return Some(Token::Reserved(";"));
-        }
-        if self.s.starts_with("{") {
-            self.s = self.s.split_at(1).1;
-            return Some(Token::Reserved("{"));
-        }
-        if self.s.starts_with("}") {
-            self.s = self.s.split_at(1).1;
-            return Some(Token::Reserved("}"));
-        }
-        if self.s.starts_with(",") {
-            self.s = self.s.split_at(1).1;
-            return Some(Token::Reserved(","));
+
+        for token in RESERVED_TOKENS {
+            if self.s.starts_with(token) {
+                self.s = self.s.split_at(token.len()).1;
+                return Some(Token::Reserved(token));
+            }
         }
 
         match self.s.chars().next() {
@@ -158,8 +107,6 @@ fn split_ident(s: &str) -> (&str, &str) {
 fn is_ident_char(c: char) -> bool {
     char::is_alphanumeric(c) || c == '_'
 }
-
-
 
 #[test]
 fn test() {
