@@ -7,7 +7,6 @@
     local.get $b
     call $lcm
     return
-    drop
     i32.const 0
   )
   (func $lcm
@@ -22,7 +21,6 @@
     local.get $b
     i32.mul
     return
-    drop
     i32.const 0
   )
   (func $gcd
@@ -38,13 +36,8 @@
     local.get $a
     call $gcd
     return
-    drop
-    i32.const 0
-      drop
       )
     )
-    i32.const 0
-    drop
     local.get $a
     local.get $b
     i32.eq
@@ -52,13 +45,8 @@
       (then
     local.get $a
     return
-    drop
-    i32.const 0
-      drop
       )
     )
-    i32.const 0
-    drop
     local.get $b
     i32.const 0
     i32.eq
@@ -66,13 +54,8 @@
       (then
     local.get $a
     return
-    drop
-    i32.const 0
-      drop
       )
     )
-    i32.const 0
-    drop
     local.get $b
     local.get $a
     local.get $a
@@ -83,7 +66,6 @@
     i32.sub
     call $gcd
     return
-    drop
     i32.const 0
   )
   (export "main" (func $main))

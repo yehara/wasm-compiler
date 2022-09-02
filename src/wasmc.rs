@@ -124,6 +124,7 @@ impl Node {
         let mut vars : HashSet<String> = HashSet::new();
         self.gen_locals(&mut param_set, &mut vars);
         self.body.as_ref().unwrap().gen_block();
+        println!("    i32.const 0");
         println!("  )");
     }
 
@@ -145,16 +146,13 @@ impl Node {
         println!("    (if");
         println!("      (then");
         self.then.as_ref().unwrap().gen_stmt();
-        println!("      drop");
         println!("      )");
         if let Some(els) = &self.els {
             println!("      (else");
             els.gen_stmt();
-            println!("      drop");
             println!("      )");
         }
         println!("    )");
-        println!("    i32.const 0");
     }
 
     fn gen_while(&self) {
@@ -165,11 +163,9 @@ impl Node {
         println!("        i32.eq");
         println!("        br_if $block{}", self.id);
         self.body.as_ref().unwrap().gen_stmt();
-        println!("        drop ");
         println!("        br $loop{}", self.id);
         println!("      )");
         println!("    )");
-        println!("    i32.const 0");
     }
 
     fn gen_for(&self) {
@@ -186,7 +182,6 @@ impl Node {
             println!("        br_if $block{}", self.id);
         }
         self.body.as_ref().unwrap().gen_stmt();
-        println!("        drop");
         if let Some(inc) = &self.inc {
             inc.gen();
             println!("        drop");
@@ -194,15 +189,12 @@ impl Node {
         println!("        br $loop{}", self.id);
         println!("      )");
         println!("    )");
-        println!("    i32.const 0");
     }
 
     fn gen_block(&self) {
         for stmt in &self.stmts {
             stmt.as_ref().unwrap().gen_stmt();
-            println!("    drop");
         }
-        println!("    i32.const 0");
     }
 
     fn gen_call(&self) {
@@ -237,7 +229,18 @@ impl Node {
             return;
         }
 
+        if self.kind == NodeKind::Return {
+            self.gen_return();
+            return;
+        }
+
         self.gen();
+        println!("    drop");
+    }
+
+    fn gen_return(&self) {
+        self.lhs.as_ref().unwrap().gen();
+        println!("    return");
     }
 
     // スタックに値を残す式
@@ -296,9 +299,6 @@ impl Node {
             NodeKind::LVar(name) => {
                 println!("    local.get ${}", name);
             },
-            NodeKind::Return => {
-                println!("    return");
-            }
             _ => ()
         }
     }

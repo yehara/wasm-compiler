@@ -4,7 +4,6 @@
     i32.const 10
     call $fib2
     return
-    drop
     i32.const 0
   )
   (func $fib2
@@ -21,13 +20,8 @@
       (then
     local.get $a
     return
-    drop
-    i32.const 0
-      drop
       )
     )
-    i32.const 0
-    drop
     i32.const 0
     local.tee $p0
     drop
@@ -56,8 +50,6 @@
     local.get $p2
     local.tee $p1
     drop
-    i32.const 0
-        drop
     local.get $i
     i32.const 1
     i32.add
@@ -66,11 +58,8 @@
         br $loop41
       )
     )
-    i32.const 0
-    drop
     local.get $p2
     return
-    drop
     i32.const 0
   )
   (export "main" (func $main))
