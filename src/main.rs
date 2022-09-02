@@ -1,6 +1,6 @@
 mod wasmc;
 mod tokenizer;
-
+mod parser;
 use std::env;
 use std::process::exit;
 
