@@ -103,9 +103,11 @@ impl Node {
     fn new_function(name: String, params: Vec<String>, body: Link) -> Self {
         Self { id: node_id(), kind: NodeKind::Function(name), params,  body, ..Default::default() }
     }
+
     fn new_call(name: String, args: Vec<Link>) -> Self {
         Self { id: node_id(), kind: NodeKind::Call(name), args, ..Default::default() }
     }
+
     fn link(node: Node) -> Link {
         Some(Box::new(node))
     }
@@ -208,34 +210,17 @@ impl Node {
     }
 
     fn gen_stmt(&self) {
-
-        if self.kind == NodeKind::If {
-            self.gen_if();
-            return;
+        match self.kind {
+            NodeKind::If => self.gen_if(),
+            NodeKind::While => self.gen_while(),
+            NodeKind::For => self.gen_for(),
+            NodeKind::Block => self.gen_block(),
+            NodeKind::Return => self.gen_return(),
+            _ => {
+                self.gen();
+                println!("    drop");
+            }
         }
-
-        if self.kind == NodeKind::While {
-            self.gen_while();
-            return;
-        }
-
-        if self.kind == NodeKind::For {
-            self.gen_for();
-            return;
-        }
-
-        if self.kind == NodeKind::Block {
-            self.gen_block();
-            return;
-        }
-
-        if self.kind == NodeKind::Return {
-            self.gen_return();
-            return;
-        }
-
-        self.gen();
-        println!("    drop");
     }
 
     fn gen_return(&self) {
@@ -246,14 +231,16 @@ impl Node {
     // スタックに値を残す式
     fn gen(&self) {
 
-        if self.kind == NodeKind::Assign {
-            self.gen_lval();
-            return;
-        }
-
-        if let NodeKind::Call(_) = self.kind {
-            self.gen_call();
-            return;
+        match self.kind {
+            NodeKind::Assign => {
+                self.gen_lval();
+                return;
+            },
+            NodeKind::Call(_) => {
+                self.gen_call();
+                return;
+            },
+            _ => ()
         }
 
         if let Some(child) = &self.lhs {
@@ -263,42 +250,29 @@ impl Node {
             child.gen();
         }
         match &self.kind {
-            NodeKind::Num(num) => {
-                println!("    i32.const {}", num);
-            },
-            NodeKind::Add => {
-                println!("    i32.add");
-            },
-            NodeKind::Sub => {
-                println!("    i32.sub");
-            },
-            NodeKind::Mult => {
-                println!("    i32.mul");
-            },
-            NodeKind::Div => {
-                println!("    i32.div_s");
-            },
-            NodeKind::Equal => {
-                println!("    i32.eq");
-            },
-            NodeKind::NotEqual => {
-                println!("    i32.ne");
-            },
-            NodeKind::GreaterThan => {
-                println!("    i32.gt_s");
-            },
-            NodeKind::GreaterThanOrEqual => {
-                println!("    i32.ge_s");
-            },
-            NodeKind::LessThan => {
-                println!("    i32.lt_s");
-            },
-            NodeKind::LessThanOrEqual => {
-                println!("    i32.le_s");
-            },
-            NodeKind::LVar(name) => {
-                println!("    local.get ${}", name);
-            },
+            NodeKind::Num(num) => println!("    i32.const {}", num),
+            NodeKind::Add =>
+                println!("    i32.add"),
+            NodeKind::Sub =>
+                println!("    i32.sub"),
+            NodeKind::Mult =>
+                println!("    i32.mul"),
+            NodeKind::Div =>
+                println!("    i32.div_s"),
+            NodeKind::Equal =>
+                println!("    i32.eq"),
+            NodeKind::NotEqual =>
+                println!("    i32.ne"),
+            NodeKind::GreaterThan =>
+                println!("    i32.gt_s"),
+            NodeKind::GreaterThanOrEqual =>
+                println!("    i32.ge_s"),
+            NodeKind::LessThan =>
+                println!("    i32.lt_s"),
+            NodeKind::LessThanOrEqual =>
+                println!("    i32.le_s"),
+            NodeKind::LVar(name) =>
+                println!("    local.get ${}", name),
             _ => ()
         }
     }
