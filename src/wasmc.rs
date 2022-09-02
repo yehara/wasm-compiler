@@ -144,12 +144,12 @@ impl Node {
         self.cond.as_ref().unwrap().gen();
         println!("    (if");
         println!("      (then");
-        self.then.as_ref().unwrap().gen();
+        self.then.as_ref().unwrap().gen_stmt();
         println!("      drop");
         println!("      )");
         if let Some(els) = &self.els {
             println!("      (else");
-            els.gen();
+            els.gen_stmt();
             println!("      drop");
             println!("      )");
         }
@@ -164,7 +164,7 @@ impl Node {
         println!("        i32.const 0");
         println!("        i32.eq");
         println!("        br_if $block{}", self.id);
-        self.body.as_ref().unwrap().gen();
+        self.body.as_ref().unwrap().gen_stmt();
         println!("        drop ");
         println!("        br $loop{}", self.id);
         println!("      )");
@@ -185,7 +185,7 @@ impl Node {
             println!("        i32.eq");
             println!("        br_if $block{}", self.id);
         }
-        self.body.as_ref().unwrap().gen();
+        self.body.as_ref().unwrap().gen_stmt();
         println!("        drop");
         if let Some(inc) = &self.inc {
             inc.gen();
@@ -199,7 +199,7 @@ impl Node {
 
     fn gen_block(&self) {
         for stmt in &self.stmts {
-            stmt.as_ref().unwrap().gen();
+            stmt.as_ref().unwrap().gen_stmt();
             println!("    drop");
         }
         println!("    i32.const 0");
@@ -215,11 +215,7 @@ impl Node {
         println!("    call ${}", name);
     }
 
-    fn gen(&self) {
-        if self.kind == NodeKind::Assign {
-            self.gen_lval();
-            return;
-        }
+    fn gen_stmt(&self) {
 
         if self.kind == NodeKind::If {
             self.gen_if();
@@ -238,6 +234,17 @@ impl Node {
 
         if self.kind == NodeKind::Block {
             self.gen_block();
+            return;
+        }
+
+        self.gen();
+    }
+
+    // スタックに値を残す式
+    fn gen(&self) {
+
+        if self.kind == NodeKind::Assign {
+            self.gen_lval();
             return;
         }
 
