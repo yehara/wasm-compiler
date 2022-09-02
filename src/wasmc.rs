@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 use std::iter::Peekable;
 use std::sync::atomic::{AtomicU32, Ordering};
-use crate::parser::Token;
-use crate::parser::TokenIterator;
+use crate::tokenizer::Token;
+use crate::tokenizer::TokenIterator;
 
 pub fn compile(exp: &str) {
 
