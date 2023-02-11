@@ -62,6 +62,20 @@ impl Module {
         Ok(())
     }
 
+    pub fn write_wasm_code_section(&self, write: &mut dyn Write) -> Result<()> {
+        write.write(&vec![0x0a])?; // section code
+        let mut buf : Vec<u8> = Vec::new();
+
+        buf.write(&vec![self.functions.len() as u8])?; // num functions
+        for function in self.functions.iter() {
+            function.write_wasm(&mut buf)?;
+        }
+
+        write.write(&vec![buf.len() as u8])?; // section size
+        write.write(&buf)?;
+        Ok(())
+    }
+
 }
 
 impl WatWriter for Module {
@@ -82,6 +96,7 @@ impl WasmWriter for Module {
         self.write_wasm_type_section(write)?;
         self.write_wasm_function_section(write)?;
         self.write_wasm_export_section(write)?;
+        self.write_wasm_code_section(write)?;
         Ok(())
     }
 }
