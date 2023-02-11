@@ -1,5 +1,6 @@
 mod wasmc;
 mod parser;
+mod ast;
 
 use std::env;
 use std::process::exit;
