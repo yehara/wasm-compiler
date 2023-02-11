@@ -1,5 +1,12 @@
 mod module;
 mod function;
+mod param;
+mod wasm_type;
+
+pub use module::Module;
+pub use function::Function;
+pub use wasm_type::WasmType;
+pub use param::Param;
 
 use std::io::{Write, Result};
 
