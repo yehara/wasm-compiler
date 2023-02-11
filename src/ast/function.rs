@@ -3,10 +3,12 @@ use crate::ast::{Param, WasmWriter, WatWriter};
 use crate::ast::WasmType::I32;
 
 pub struct Function {
+    pub name: String,
     pub params: Vec<Param>,
 }
 
 impl Function {
+
     pub fn write_wasm_type(&self, write: &mut dyn Write) -> Result<()>{
         write.write(&vec![0x60])?; // func
         write.write(&vec![0x00])?; // section size (guess)
@@ -19,6 +21,8 @@ impl Function {
 
         Ok(())
     }
+
+
 }
 
 impl WatWriter for Function {
