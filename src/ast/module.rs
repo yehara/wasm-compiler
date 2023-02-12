@@ -1,5 +1,5 @@
 use std::io::{Write, Result};
-use crate::ast::{Param, WasmWriter, WatWriter};
+use crate::ast::{Block, Param, WasmWriter, WatWriter};
 use crate::ast::Function;
 use crate::ast::WasmType::I32;
 
@@ -8,6 +8,16 @@ pub struct Module {
 }
 
 impl Module {
+
+    pub fn new() -> Self {
+        Self {
+            functions: Vec::new()
+        }
+    }
+
+    pub fn add_function(&mut self, function: Function) {
+        self.functions.push(Box::new(function));
+    }
 
     pub fn write_wasm_type_section(&self, write: &mut dyn Write) -> Result<()>{
         write.write(&vec![0x01])?; // section code
@@ -84,6 +94,7 @@ impl WatWriter for Module {
         for func in self.functions.iter() {
             let _ = func.write_wat(write)?;
         }
+        writeln!(write, "(export \"main\" (func $main))")?;
         writeln!(write, ")")?;
         Ok(())
     }
@@ -103,11 +114,13 @@ impl WasmWriter for Module {
 
 #[test]
 fn test_wat() {
+
+    let function = Function::new("main".to_string(),
+                                 vec![Param{wtype: I32, name: "123".to_string()}],
+                                 Box::new(Block::new())
+    );
     let module = Module {
-        functions: vec![Box::new(Function {
-            name: "main".to_string(),
-            params: vec![Param{wtype: I32, name: "123".to_string()}]}
-        )]
+        functions: vec![Box::new(function)]
     };
     let mut write = std::io::stdout();
     let _ = module.write_wat(&mut write);
@@ -115,11 +128,12 @@ fn test_wat() {
 
 #[test]
 fn test_wasm() {
+    let function = Function::new("main".to_string(),
+                                 vec![Param{wtype: I32, name: "123".to_string()}],
+                                  Box::new(Block::new())
+    );
     let module = Module {
-        functions: vec![Box::new(Function {
-            name: "main".to_string(),
-            params: vec![Param{wtype: I32, name: "123".to_string()}]}
-        )]
+        functions: vec![Box::new(function)]
     };
     let mut buf = vec![];
     let _ = module.write_wasm(&mut buf);

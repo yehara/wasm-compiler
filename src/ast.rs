@@ -2,11 +2,26 @@ mod module;
 mod function;
 mod param;
 mod wasm_type;
+mod builder;
+mod block;
+mod statement;
+mod return_node;
+mod expression;
+mod assign;
+mod number;
+mod operator;
 
 pub use module::Module;
 pub use function::Function;
 pub use wasm_type::WasmType;
 pub use param::Param;
+pub use block::Block;
+pub use statement::Statement;
+pub use return_node::ReturnNode;
+pub use expression::Expression;
+pub use assign::Assign;
+pub use number::Number;
+pub use operator::*;
 
 use std::io::{Write, Result};
 
@@ -16,4 +31,5 @@ pub trait WatWriter {
 pub trait WasmWriter {
     fn write_wasm(&self, write: &mut dyn Write) -> Result<()>;
 }
-
+pub trait AstNode: WatWriter + WasmWriter {
+}

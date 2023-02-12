@@ -1,21 +1,16 @@
 use std::collections::HashSet;
+use std::io::stdout;
 use std::iter::Peekable;
 use std::sync::atomic::{AtomicU32, Ordering};
+use crate::ast::{Assign, AstNode, BiOperator, BiOpKind, Block, Function, Module, Number, Param, Statement, WatWriter};
 use crate::parser::Token;
 use crate::parser::TokenIterator;
 
 pub fn compile(exp: &str) {
 
     let mut input = Input::new(exp);
-    let nodes = input.tokenize();
-    //println!("{:?}", node);
-
-    println!("(module");
-    for node in &nodes {
-        node.gen_func();
-    }
-    println!("  (export \"main\" (func $main))");
-    println!(")");
+    let module = input.tokenize();
+    let _ = module.write_wat(&mut stdout());
 
 }
 
@@ -376,33 +371,32 @@ impl <'a> Input<'a> {
         Self { token_iterator: TokenIterator { s: input }.peekable() }
     }
 
-    fn tokenize(&mut self) -> Vec<Node> {
+    fn tokenize(&mut self) -> Module {
         self.program()
     }
 
-    fn program(&mut self) -> Vec<Node> {
-        let mut nodes = Vec::new();
+    fn program(&mut self) -> Module {
+        let mut module = Module::new();
         while self.token_iterator.peek() != None {
-            nodes.push(self.func());
+            module.add_function(self.func());
         }
-        nodes
+        module
     }
 
-    fn func(&mut self) -> Node {
+    fn func(&mut self) -> Function {
         match self.token_iterator.next() {
             Some(Token::Ident(func_name)) => {
-                let mut params = Vec::new();
-
+                let mut params : Vec<Param> = Vec::new();
                 self.expect(Token::Reserved("("));
                 match self.token_iterator.next() {
                     Some(Token::Reserved(")")) => {}
                     Some(Token::Ident(param_name)) => {
-                        params.push(param_name.to_string());
+                        params.push(Param::new(param_name.to_string()));
                         while self.token_iterator.peek() != Some(&Token::Reserved(")")) {
                             self.expect(Token::Reserved(","));
                             match self.token_iterator.next() {
                                 Some(Token::Ident(param_name)) => {
-                                    params.push(param_name.to_string());
+                                    params.push(Param::new(param_name.to_string()));
                                 }
                                 _ => {
                                     panic!("関数のパラメータ宣言にエラーがあります")
@@ -416,7 +410,7 @@ impl <'a> Input<'a> {
                     }
                 }
                 let block = self.block();
-                return Node::new_function(func_name.to_string(), params, Node::link(block));
+                return Function::new(func_name.to_string(), params, Box::new(block));
             },
             _ => {
                 panic!("関数宣言ではありません");
@@ -424,78 +418,78 @@ impl <'a> Input<'a> {
         }
     }
 
-    fn stmt(&mut self) -> Node {
+    fn stmt(&mut self) -> Box<dyn AstNode> {
         let node= match self.token_iterator.peek() {
             Some(Token::Return) => {
                 self.token_iterator.next();
                 let lhs = self.expr();
-                Node::new(NodeKind::Return, Node::link(lhs),None)
+                Box::new(Statement::new(lhs))
             },
-            Some(Token::If) => {
-                self.token_iterator.next();
-                self.expect(Token::Reserved("("));
-                let cond = self.expr();
-                self.expect(Token::Reserved(")"));
-                let then = self.stmt();
-                let els_link = match self.token_iterator.peek() {
-                    Some(Token::Else) => {
-                        self.token_iterator.next();
-                        Node::link(self.stmt())
-                    },
-                    _ => None
-                };
-                return Node::new_if(Node::link(cond), Node::link(then), els_link);
-            }
-            Some(Token::While) => {
-                self.token_iterator.next();
-                self.expect(Token::Reserved("("));
-                let cond = self.expr();
-                self.expect(Token::Reserved(")"));
-                let body = self.stmt();
-                return Node::new_while(Node::link(cond), Node::link(body));
-            }
-            Some(Token::For) => {
-                self.token_iterator.next();
-                self.expect(Token::Reserved("("));
-                let init_link = match self.token_iterator.peek() {
-                    Some(Token::Reserved(";")) => {
-                        self.token_iterator.next();
-                        None
-                    },
-                    _ => {
-                        let init = self.expr();
-                        self.expect(Token::Reserved(";"));
-                        Node::link(init)
-                    }
-                };
-                let cond_link = match self.token_iterator.peek() {
-                    Some(Token::Reserved(";")) => {
-                        self.token_iterator.next();
-                        None
-                    },
-                    _ => {
-                        let cond = self.expr();
-                        self.expect(Token::Reserved(";"));
-                        Node::link(cond)
-                    }
-                };
-                let inc_link = match self.token_iterator.peek() {
-                    Some(Token::Reserved(")")) => {
-                        self.token_iterator.next();
-                        None
-                    },
-                    _ => {
-                        let inc = self.expr();
-                        self.expect(Token::Reserved(")"));
-                        Node::link(inc)
-                    }
-                };
-                let body = self.stmt();
-                return Node::new_for(init_link, cond_link, inc_link,Node::link(body));
-            }
-            Some(Token::Reserved("{")) => {
-                return self.block();
-            }
+            // Some(Token::If) => {
+            //     self.token_iterator.next();
+            //     self.expect(Token::Reserved("("));
+            //     let cond = self.expr();
+            //     self.expect(Token::Reserved(")"));
+            //     let then = self.stmt();
+            //     let els_link = match self.token_iterator.peek() {
+            //         Some(Token::Else) => {
+            //             self.token_iterator.next();
+            //             Node::link(self.stmt())
+            //         },
+            //         _ => None
+            //     };
+            //     return Node::new_if(Node::link(cond), Node::link(then), els_link);
+            // }
+            // Some(Token::While) => {
+            //     self.token_iterator.next();
+            //     self.expect(Token::Reserved("("));
+            //     let cond = self.expr();
+            //     self.expect(Token::Reserved(")"));
+            //     let body = self.stmt();
+            //     return Node::new_while(Node::link(cond), Node::link(body));
+            // }
+            // Some(Token::For) => {
+            //     self.token_iterator.next();
+            //     self.expect(Token::Reserved("("));
+            //     let init_link = match self.token_iterator.peek() {
+            //         Some(Token::Reserved(";")) => {
+            //             self.token_iterator.next();
+            //             None
+            //         },
+            //         _ => {
+            //             let init = self.expr();
+            //             self.expect(Token::Reserved(";"));
+            //             Node::link(init)
+            //         }
+            //     };
+            //     let cond_link = match self.token_iterator.peek() {
+            //         Some(Token::Reserved(";")) => {
+            //             self.token_iterator.next();
+            //             None
+            //         },
+            //         _ => {
+            //             let cond = self.expr();
+            //             self.expect(Token::Reserved(";"));
+            //             Node::link(cond)
+            //         }
+            //     };
+            //     let inc_link = match self.token_iterator.peek() {
+            //         Some(Token::Reserved(")")) => {
+            //             self.token_iterator.next();
+            //             None
+            //         },
+            //         _ => {
+            //             let inc = self.expr();
+            //             self.expect(Token::Reserved(")"));
+            //             Node::link(inc)
+            //         }
+            //     };
+            //     let body = self.stmt();
+            //     return Node::new_for(init_link, cond_link, inc_link,Node::link(body));
+            // }
+            // Some(Token::Reserved("{")) => {
+            //     return self.block();
+            // }
             _ => {
                 self.expr()
             }
@@ -504,50 +498,53 @@ impl <'a> Input<'a> {
         node
     }
 
-    fn block(&mut self) -> Node {
+    fn block(&mut self) -> Block {
+
+        let mut block = Block::new();
+
         self.expect(Token::Reserved("{"));
-        let mut stmts:Vec<Link> = Vec::new();
         loop {
             if self.token_iterator.peek() == Some(&Token::Reserved("}")) {
                 self.token_iterator.next();
                 break;
             }
             let stmt = self.stmt();
-            stmts.push(Node::link(stmt));
+            block.add_statement(stmt);
         }
-        return Node::new_block(stmts);
+        return block;
     }
 
-    fn expr(&mut self) -> Node {
+    fn expr(&mut self) -> Box<dyn AstNode> {
         return self.assign();
     }
 
-    fn assign(&mut self) -> Node {
+    fn assign(&mut self) -> Box<dyn AstNode> {
         let mut node = self.equality();
         match self.token_iterator.peek() {
             Some(Token::Reserved("=")) => {
                 self.token_iterator.next();
                 let right = self.assign();
-                node = Node::new(NodeKind::Assign, Node::link(node),Node::link(right));
+                node = Box::new(Assign::new(node, right));
             },
             _ => ()
         }
         node
     }
 
-    fn equality(&mut self) -> Node {
+    fn equality(&mut self) -> Box<dyn AstNode> {
         let mut node = self.relational();
+
         loop {
             match self.token_iterator.peek() {
                 Some(Token::Reserved("==")) => {
                     self.token_iterator.next();
                     let right = self.relational();
-                    node = Node::new(NodeKind::Equal, Node::link(node), Node::link(right));
+                    node = Box::new(BiOperator::new(BiOpKind::Equal, node, right));
                 },
                 Some(Token::Reserved("!=")) => {
                     self.token_iterator.next();
                     let right = self.relational();
-                    node = Node::new(NodeKind::NotEqual, Node::link(node), Node::link(right));
+                    node = Box::new(BiOperator::new(BiOpKind::NotEqual, node, right));
                 },
                 _ => {
                     break;
@@ -557,29 +554,29 @@ impl <'a> Input<'a> {
         node
     }
 
-    fn relational(&mut self) -> Node {
+    fn relational(&mut self) -> Box<dyn AstNode> {
         let mut node = self.add();
         loop {
             match self.token_iterator.peek() {
                 Some(Token::Reserved(">=")) => {
                     self.token_iterator.next();
                     let right = self.add();
-                    node = Node::new(NodeKind::GreaterThanOrEqual, Node::link(node), Node::link(right));
+                    node = Box::new(BiOperator::new(BiOpKind::GreaterThanOrEqual, node, right));
                 },
                 Some(Token::Reserved(">")) => {
                     self.token_iterator.next();
                     let right = self.add();
-                    node = Node::new(NodeKind::GreaterThan, Node::link(node), Node::link(right));
+                    node = Box::new(BiOperator::new(BiOpKind::GreaterThan, node, right));
                 },
                 Some(Token::Reserved("<=")) => {
                     self.token_iterator.next();
                     let right = self.add();
-                    node = Node::new(NodeKind::LessThanOrEqual, Node::link(node), Node::link(right));
+                    node = Box::new(BiOperator::new(BiOpKind::LessThanOrEqual, node, right));
                 },
                 Some(Token::Reserved("<")) => {
                     self.token_iterator.next();
                     let right = self.add();
-                    node = Node::new(NodeKind::LessThan, Node::link(node), Node::link(right));
+                    node = Box::new(BiOperator::new(BiOpKind::LessThan, node, right));
                 },
                 _ => {
                     break;
@@ -588,19 +585,19 @@ impl <'a> Input<'a> {
         }
         node
     }
-    fn add(&mut self) -> Node {
+    fn add(&mut self) -> Box<dyn AstNode> {
         let mut node = self.mul();
         loop {
             match self.token_iterator.peek() {
                 Some(Token::Reserved("+")) => {
                     self.token_iterator.next();
                     let right = self.mul();
-                    node = Node::new(NodeKind::Add, Node::link(node), Node::link(right));
+                    node = Box::new(BiOperator::new(BiOpKind::Add, node, right));
                 },
                 Some(Token::Reserved("-")) => {
                     self.token_iterator.next();
                     let right = self.mul();
-                    node = Node::new(NodeKind::Sub, Node::link(node), Node::link(right));
+                    node = Box::new(BiOperator::new(BiOpKind::Sub, node, right));
                 },
                 _ => {
                     break;
@@ -610,19 +607,19 @@ impl <'a> Input<'a> {
         node
     }
 
-    fn mul(&mut self) -> Node {
+    fn mul(&mut self) -> Box<dyn AstNode> {
         let mut node = self.unary();
         loop {
             match self.token_iterator.peek() {
                 Some(Token::Reserved("*")) => {
                     self.token_iterator.next();
                     let right = self.unary();
-                    node = Node::new(NodeKind::Mult, Node::link(node), Node::link(right));
+                    node = Box::new(BiOperator::new(BiOpKind::Mult, node, right));
                 },
                 Some(Token::Reserved("/")) => {
                     self.token_iterator.next();
                     let right = self.unary();
-                    node = Node::new(NodeKind::Div, Node::link(node), Node::link(right));
+                    node = Box::new(BiOperator::new(BiOpKind::Div, node, right));
                 },
                 _ => {
                     break;
@@ -632,7 +629,7 @@ impl <'a> Input<'a> {
         node
     }
 
-    fn unary(&mut self) -> Node {
+    fn unary(&mut self) -> Box<dyn AstNode> {
         return match self.token_iterator.peek() {
             Some(Token::Reserved("+")) => {
                 self.token_iterator.next();
@@ -640,9 +637,9 @@ impl <'a> Input<'a> {
             },
             Some(Token::Reserved("-")) => {
                 self.token_iterator.next();
-                let left = Node::new(NodeKind::Num(0), None, None);
+                let left = Box::new(Number::new(0));
                 let right = self.primary();
-                Node::new(NodeKind::Sub, Node::link(left), Node::link(right))
+                Box::new(BiOperator::new(BiOpKind::Sub, left, right))
             },
             _ => {
                 self.primary()
@@ -650,7 +647,7 @@ impl <'a> Input<'a> {
         }
     }
 
-    fn primary(&mut self) -> Node {
+    fn primary(&mut self) -> Box<dyn AstNode> {
         match self.token_iterator.peek() {
             Some(Token::Reserved("(")) => {
                 self.token_iterator.next();
@@ -659,35 +656,35 @@ impl <'a> Input<'a> {
                 return node
             },
             Some(Token::Num(num)) => {
-                let node = Node::new(NodeKind::Num(*num), None, None);
+                let node = Box::new(Number::new(*num));
                 self.token_iterator.next();
                 return node;
             },
-            Some(Token::Ident(name)) => {
-                let name_str = name.to_string();
-                self.token_iterator.next();
-                match self.token_iterator.peek() {
-                    Some(Token::Reserved("(")) => {
-                        self.token_iterator.next();
-                        let mut args = Vec::new();
-                        match self.token_iterator.peek() {
-                            Some(Token::Reserved(")")) => {}
-                            _ => {
-                                args.push(Node::link(self.expr()));
-                                while self.token_iterator.peek() != Some(&Token::Reserved(")")) {
-                                    self.expect(Token::Reserved(","));
-                                    args.push(Node::link(self.expr()));
-                                }
-                            }
-                        }
-                        self.token_iterator.next();
-                        return Node::new_call(name_str, args);
-                    }
-                    _ => {
-                        return Node::new(NodeKind::LVar(name_str), None, None);
-                    }
-                }
-            },
+            // Some(Token::Ident(name)) => {
+            //     let name_str = name.to_string();
+            //     self.token_iterator.next();
+            //     match self.token_iterator.peek() {
+            //         Some(Token::Reserved("(")) => {
+            //             self.token_iterator.next();
+            //             let mut args = Vec::new();
+            //             match self.token_iterator.peek() {
+            //                 Some(Token::Reserved(")")) => {}
+            //                 _ => {
+            //                     args.push(Node::link(self.expr()));
+            //                     while self.token_iterator.peek() != Some(&Token::Reserved(")")) {
+            //                         self.expect(Token::Reserved(","));
+            //                         args.push(Node::link(self.expr()));
+            //                     }
+            //                 }
+            //             }
+            //             self.token_iterator.next();
+            //             return Node::new_call(name_str, args);
+            //         }
+            //         _ => {
+            //             return Node::new(NodeKind::LVar(name_str), None, None);
+            //         }
+            //     }
+            // },
             _ => {
                 panic!("factor error");
             }

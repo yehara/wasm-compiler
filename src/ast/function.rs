@@ -1,13 +1,18 @@
 use std::io::{Write, Result};
-use crate::ast::{Param, WasmWriter, WatWriter};
+use crate::ast::{AstNode, Param, WasmWriter, WatWriter};
 use crate::ast::WasmType::I32;
 
 pub struct Function {
     pub name: String,
     pub params: Vec<Param>,
+    pub body: Box<dyn AstNode>
 }
 
 impl Function {
+
+    pub fn new(name: String, params: Vec<Param>, body: Box<dyn AstNode>) -> Self {
+        Self { name, params,  body }
+    }
 
     pub fn write_wasm_type(&self, write: &mut dyn Write) -> Result<()>{
         write.write(&vec![0x60])?; // func
@@ -25,7 +30,9 @@ impl Function {
 
 impl WatWriter for Function {
     fn write_wat(&self, write: &mut dyn Write) -> Result<()>{
-        writeln!(write, "(func")?;
+        writeln!(write, "(func ${}", &self.name)?;
+        writeln!(write, "(result i32)")?;
+        self.body.write_wat(write)?;
         writeln!(write, ")")?;
         Ok(())
     }

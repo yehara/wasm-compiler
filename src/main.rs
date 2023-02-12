@@ -1,3 +1,5 @@
+extern crate core;
+
 mod wasmc;
 mod parser;
 mod ast;
