@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::io::stdout;
 use std::iter::Peekable;
 use std::sync::atomic::{AtomicU32, Ordering};
-use crate::ast::{Assign, AstNode, BiOperator, BiOpKind, Block, Function, IfNode, Module, Number, Param, ReturnNode, Variable, WatWriter, WhileNode};
+use crate::ast::{Assign, AstNode, BiOperator, BiOpKind, Block, ForNode, Function, IfNode, Module, Number, Param, ReturnNode, Variable, WatWriter, WhileNode};
 use crate::parser::Token;
 use crate::parser::TokenIterator;
 
@@ -448,45 +448,45 @@ impl <'a> Input<'a> {
                 let body = self.stmt();
                 return Box::new(WhileNode::new(cond, body));
             }
-            // Some(Token::For) => {
-            //     self.token_iterator.next();
-            //     self.expect(Token::Reserved("("));
-            //     let init_link = match self.token_iterator.peek() {
-            //         Some(Token::Reserved(";")) => {
-            //             self.token_iterator.next();
-            //             None
-            //         },
-            //         _ => {
-            //             let init = self.expr();
-            //             self.expect(Token::Reserved(";"));
-            //             Node::link(init)
-            //         }
-            //     };
-            //     let cond_link = match self.token_iterator.peek() {
-            //         Some(Token::Reserved(";")) => {
-            //             self.token_iterator.next();
-            //             None
-            //         },
-            //         _ => {
-            //             let cond = self.expr();
-            //             self.expect(Token::Reserved(";"));
-            //             Node::link(cond)
-            //         }
-            //     };
-            //     let inc_link = match self.token_iterator.peek() {
-            //         Some(Token::Reserved(")")) => {
-            //             self.token_iterator.next();
-            //             None
-            //         },
-            //         _ => {
-            //             let inc = self.expr();
-            //             self.expect(Token::Reserved(")"));
-            //             Node::link(inc)
-            //         }
-            //     };
-            //     let body = self.stmt();
-            //     return Node::new_for(init_link, cond_link, inc_link,Node::link(body));
-            // }
+            Some(Token::For) => {
+                self.token_iterator.next();
+                self.expect(Token::Reserved("("));
+                let init = match self.token_iterator.peek() {
+                    Some(Token::Reserved(";")) => {
+                        self.token_iterator.next();
+                        None
+                    },
+                    _ => {
+                        let init = self.expr();
+                        self.expect(Token::Reserved(";"));
+                        Some(init)
+                    }
+                };
+                let cond = match self.token_iterator.peek() {
+                    Some(Token::Reserved(";")) => {
+                        self.token_iterator.next();
+                        None
+                    },
+                    _ => {
+                        let cond = self.expr();
+                        self.expect(Token::Reserved(";"));
+                        Some(cond)
+                    }
+                };
+                let inc = match self.token_iterator.peek() {
+                    Some(Token::Reserved(")")) => {
+                        self.token_iterator.next();
+                        None
+                    },
+                    _ => {
+                        let inc = self.expr();
+                        self.expect(Token::Reserved(")"));
+                        Some(inc)
+                    }
+                };
+                let body = self.stmt();
+                return Box::new(ForNode::new(init, cond, inc, body));
+            }
             Some(Token::Reserved("{")) => {
                 return Box::new(self.block());
             }
