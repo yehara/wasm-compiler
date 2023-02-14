@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::io::stdout;
 use std::iter::Peekable;
 use std::sync::atomic::{AtomicU32, Ordering};
-use crate::ast::{Assign, AstNode, BiOperator, BiOpKind, Block, Function, IfNode, Module, Number, Param, ReturnNode, Variable, WatWriter};
+use crate::ast::{Assign, AstNode, BiOperator, BiOpKind, Block, Function, IfNode, Module, Number, Param, ReturnNode, Variable, WatWriter, WhileNode};
 use crate::parser::Token;
 use crate::parser::TokenIterator;
 
@@ -440,14 +440,14 @@ impl <'a> Input<'a> {
                 };
                 return Box::new(IfNode::new(cond, then, els))
             }
-            // Some(Token::While) => {
-            //     self.token_iterator.next();
-            //     self.expect(Token::Reserved("("));
-            //     let cond = self.expr();
-            //     self.expect(Token::Reserved(")"));
-            //     let body = self.stmt();
-            //     return Node::new_while(Node::link(cond), Node::link(body));
-            // }
+            Some(Token::While) => {
+                self.token_iterator.next();
+                self.expect(Token::Reserved("("));
+                let cond = self.expr();
+                self.expect(Token::Reserved(")"));
+                let body = self.stmt();
+                return Box::new(WhileNode::new(cond, body));
+            }
             // Some(Token::For) => {
             //     self.token_iterator.next();
             //     self.expect(Token::Reserved("("));
