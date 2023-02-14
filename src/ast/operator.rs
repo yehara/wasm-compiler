@@ -61,7 +61,7 @@ impl WatWriter for BiOperator {
 }
 
 impl WasmWriter for BiOperator {
-    fn write_wasm(&self, write: &mut dyn Write) -> std::io::Result<()> {
+    fn write_wasm(&self, _write: &mut dyn Write) -> std::io::Result<()> {
         todo!()
     }
 }

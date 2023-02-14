@@ -1,19 +1,20 @@
 use std::io::Write;
-use crate::ast::{AstNode, Expression, WasmWriter, WatWriter};
+use crate::ast::{AstNode, WasmWriter, WatWriter};
 
 pub struct ReturnNode {
-    expression: Expression
+    child: Box<dyn AstNode>
 }
 
 impl WatWriter for ReturnNode {
     fn write_wat(&self, write: &mut dyn Write) -> std::io::Result<()> {
-        write.write("return".as_bytes())?;
+        self.child.write_wat(write)?;
+        writeln!(write, "return")?;
         Ok(())
     }
 }
 
 impl WasmWriter for ReturnNode {
-    fn write_wasm(&self, write: &mut dyn Write) -> std::io::Result<()> {
+    fn write_wasm(&self, _write: &mut dyn Write) -> std::io::Result<()> {
         todo!()
     }
 }
@@ -21,9 +22,9 @@ impl WasmWriter for ReturnNode {
 impl AstNode for ReturnNode {}
 
 impl ReturnNode {
-    pub fn new(expression: Expression) -> Self {
+    pub fn new(child: Box<dyn AstNode>) -> Self {
         Self {
-            expression
+            child
         }
     }
 }

@@ -13,17 +13,9 @@ impl WatWriter for Statement {
 }
 
 impl WasmWriter for Statement {
-    fn write_wasm(&self, write: &mut dyn Write) -> std::io::Result<()> {
+    fn write_wasm(&self, _write: &mut dyn Write) -> std::io::Result<()> {
         todo!()
     }
 }
 
 impl AstNode for Statement {}
-
-impl Statement {
-    pub fn new(child: Box<dyn AstNode>) -> Self {
-        Self {
-            child
-        }
-    }
-}

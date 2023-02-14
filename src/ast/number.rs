@@ -13,7 +13,7 @@ impl WatWriter for Number {
 }
 
 impl WasmWriter for Number {
-    fn write_wasm(&self, write: &mut dyn Write) -> std::io::Result<()> {
+    fn write_wasm(&self, _write: &mut dyn Write) -> std::io::Result<()> {
         todo!()
     }
 }
