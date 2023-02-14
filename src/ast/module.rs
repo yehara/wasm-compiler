@@ -1,6 +1,9 @@
 use std::io::{Write, Result};
-use crate::ast::{Block, Param, WasmWriter, WatWriter};
+#[cfg(test)]
+use crate::ast::{Block, Param};
+use crate::ast::{WasmWriter, WatWriter};
 use crate::ast::Function;
+#[cfg(test)]
 use crate::ast::WasmType::I32;
 
 pub struct Module {

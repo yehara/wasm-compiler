@@ -59,7 +59,7 @@ impl WatWriter for Function {
 
 impl WasmWriter for Function {
     fn write_wasm(&self, write: &mut dyn Write) -> Result<()> {
-        let mut buf : Vec<u8> = Vec::new();
+        let buf : Vec<u8> = Vec::new();
 
         // todo: write function body
 
