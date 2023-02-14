@@ -14,6 +14,7 @@ mod variable;
 mod if_node;
 mod while_node;
 mod for_node;
+mod call;
 
 use std::any::Any;
 use std::collections::HashSet;
@@ -32,6 +33,7 @@ pub use variable::Variable;
 pub use if_node::IfNode;
 pub use while_node::WhileNode;
 pub use for_node::ForNode;
+pub use call::Call;
 
 use std::io::{Write, Result};
 use std::sync::atomic::{AtomicU32, Ordering};

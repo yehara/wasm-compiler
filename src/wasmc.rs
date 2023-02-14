@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::io::stdout;
 use std::iter::Peekable;
 use std::sync::atomic::{AtomicU32, Ordering};
-use crate::ast::{Assign, AstNode, BiOperator, BiOpKind, Block, ForNode, Function, IfNode, Module, Number, Param, ReturnNode, Variable, WatWriter, WhileNode};
+use crate::ast::{Assign, AstNode, BiOperator, BiOpKind, Block, Call, ForNode, Function, IfNode, Module, Number, Param, ReturnNode, Variable, WatWriter, WhileNode};
 use crate::parser::Token;
 use crate::parser::TokenIterator;
 
@@ -664,22 +664,22 @@ impl <'a> Input<'a> {
                 let name_str = name.to_string();
                 self.token_iterator.next();
                 match self.token_iterator.peek() {
-                    // Some(Token::Reserved("(")) => {
-                    //     self.token_iterator.next();
-                    //     let mut args = Vec::new();
-                    //     match self.token_iterator.peek() {
-                    //         Some(Token::Reserved(")")) => {}
-                    //         _ => {
-                    //             args.push(Node::link(self.expr()));
-                    //             while self.token_iterator.peek() != Some(&Token::Reserved(")")) {
-                    //                 self.expect(Token::Reserved(","));
-                    //                 args.push(Node::link(self.expr()));
-                    //             }
-                    //         }
-                    //     }
-                    //     self.token_iterator.next();
-                    //     return Node::new_call(name_str, args);
-                    // }
+                    Some(Token::Reserved("(")) => {
+                        self.token_iterator.next();
+                        let mut args = Vec::new();
+                        match self.token_iterator.peek() {
+                            Some(Token::Reserved(")")) => {}
+                            _ => {
+                                args.push(self.expr());
+                                while self.token_iterator.peek() != Some(&Token::Reserved(")")) {
+                                    self.expect(Token::Reserved(","));
+                                    args.push(self.expr());
+                                }
+                            }
+                        }
+                        self.token_iterator.next();
+                        return Box::new(Call::new(name_str, args));
+                    }
                     _ => {
                         return Box::new(Variable::new(name_str));
                     }
