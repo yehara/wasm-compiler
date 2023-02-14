@@ -11,6 +11,7 @@ mod assign;
 mod number;
 mod operator;
 mod variable;
+mod if_node;
 
 use std::any::Any;
 use std::collections::HashSet;
@@ -26,6 +27,7 @@ pub use assign::Assign;
 pub use number::Number;
 pub use operator::*;
 pub use variable::Variable;
+pub use if_node::IfNode;
 
 use std::io::{Write, Result};
 

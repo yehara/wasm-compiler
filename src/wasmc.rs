@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::io::stdout;
 use std::iter::Peekable;
 use std::sync::atomic::{AtomicU32, Ordering};
-use crate::ast::{Assign, AstNode, BiOperator, BiOpKind, Block, Function, Module, Number, Param, ReturnNode, Variable, WatWriter};
+use crate::ast::{Assign, AstNode, BiOperator, BiOpKind, Block, Function, IfNode, Module, Number, Param, ReturnNode, Variable, WatWriter};
 use crate::parser::Token;
 use crate::parser::TokenIterator;
 
@@ -419,27 +419,27 @@ impl <'a> Input<'a> {
     }
 
     fn stmt(&mut self) -> Box<dyn AstNode> {
-        let node= match self.token_iterator.peek() {
+        let node : Box<dyn AstNode> = match self.token_iterator.peek() {
             Some(Token::Return) => {
                 self.token_iterator.next();
                 let lhs = self.expr();
                 Box::new(ReturnNode::new(lhs))
             },
-            // Some(Token::If) => {
-            //     self.token_iterator.next();
-            //     self.expect(Token::Reserved("("));
-            //     let cond = self.expr();
-            //     self.expect(Token::Reserved(")"));
-            //     let then = self.stmt();
-            //     let els_link = match self.token_iterator.peek() {
-            //         Some(Token::Else) => {
-            //             self.token_iterator.next();
-            //             Node::link(self.stmt())
-            //         },
-            //         _ => None
-            //     };
-            //     return Node::new_if(Node::link(cond), Node::link(then), els_link);
-            // }
+            Some(Token::If) => {
+                self.token_iterator.next();
+                self.expect(Token::Reserved("("));
+                let cond = self.expr();
+                self.expect(Token::Reserved(")"));
+                let then = self.stmt();
+                let els = match self.token_iterator.peek() {
+                    Some(Token::Else) => {
+                        self.token_iterator.next();
+                        Some(self.stmt())
+                    },
+                    _ => None
+                };
+                return Box::new(IfNode::new(cond, then, els))
+            }
             // Some(Token::While) => {
             //     self.token_iterator.next();
             //     self.expect(Token::Reserved("("));
@@ -696,7 +696,7 @@ impl <'a> Input<'a> {
         match next {
             Some(token) => {
                 if token != expected {
-                    panic!("unexpected token");
+                    panic!("unexpected token {:?}", expected);
                 }
                 return token;
             },
