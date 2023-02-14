@@ -487,9 +487,9 @@ impl <'a> Input<'a> {
             //     let body = self.stmt();
             //     return Node::new_for(init_link, cond_link, inc_link,Node::link(body));
             // }
-            // Some(Token::Reserved("{")) => {
-            //     return self.block();
-            // }
+            Some(Token::Reserved("{")) => {
+                return Box::new(self.block());
+            }
             _ => {
                 self.expr()
             }
