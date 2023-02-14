@@ -7,24 +7,6 @@ pub struct IfNode {
     else_block: Option<Box<dyn AstNode>>,
 }
 
-/**
-fn gen_if(&self) {
-    self.cond.as_ref().unwrap().gen();
-    println!("    (if");
-    println!("      (then");
-    self.then.as_ref().unwrap().gen();
-    println!("      drop");
-    println!("      )");
-    if let Some(els) = &self.els {
-        println!("      (else");
-        els.gen();
-        println!("      drop");
-        println!("      )");
-    }
-    println!("    )");
-    println!("    i32.const 0");
-}
-*/
 impl WatWriter for IfNode {
     fn write_wat(&self, write: &mut dyn Write) -> std::io::Result<()> {
         self.condition.write_wat(write)?;
