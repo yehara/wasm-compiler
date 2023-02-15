@@ -17,8 +17,13 @@ impl WatWriter for Block {
 }
 
 impl WasmWriter for Block {
-    fn write_wasm(&self, _write: &mut dyn Write) -> std::io::Result<()> {
-        todo!()
+    fn write_wasm(&self, write: &mut dyn Write) -> std::io::Result<()> {
+        for statement in &self.statements {
+            statement.write_wasm(write)?;
+            write.write(&vec![0x1a])?; // drop
+        }
+        write.write(&vec![0x41, 0x00])?; // i32.const 0
+        Ok(())
     }
 }
 

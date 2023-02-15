@@ -13,8 +13,10 @@ impl WatWriter for Number {
 }
 
 impl WasmWriter for Number {
-    fn write_wasm(&self, _write: &mut dyn Write) -> std::io::Result<()> {
-        todo!()
+    fn write_wasm(&self, write: &mut dyn Write) -> std::io::Result<()> {
+        write.write(&vec![0x41])?;             // i32.const
+        write.write(&vec![self.value as u8])?; // i32 literal
+        Ok(())
     }
 }
 

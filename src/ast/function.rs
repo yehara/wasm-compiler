@@ -6,13 +6,22 @@ use crate::ast::WasmType::I32;
 pub struct Function {
     pub name: String,
     pub params: Vec<Param>,
-    pub body: Box<dyn AstNode>
+    pub body: Box<dyn AstNode>,
+    locals: HashSet<String>,
 }
 
 impl Function {
 
     pub fn new(name: String, params: Vec<Param>, body: Box<dyn AstNode>) -> Self {
-        Self { name, params,  body }
+        let mut function = Self { name, params,  body, locals: HashSet::new() };
+        let mut param_set : HashSet<String> = HashSet::new();
+        for param in function.params.iter() {
+            param_set.insert(param.name.to_string());
+        }
+        let mut vars : HashSet<String> = HashSet::new();
+        function.collect_locals(&mut param_set, &mut vars);
+        function.locals = vars;
+        function
     }
 
     pub fn write_wasm_type(&self, write: &mut dyn Write) -> Result<()>{
@@ -33,25 +42,15 @@ impl Function {
 impl WatWriter for Function {
     fn write_wat(&self, write: &mut dyn Write) -> Result<()>{
         writeln!(write, "(func ${}", &self.name)?;
-
-        let mut param_set : HashSet<String> = HashSet::new();
         for param in self.params.iter() {
             writeln!(write, "    (param ${} i32)", param.name)?;
-            param_set.insert(param.name.to_string());
         }
-
         writeln!(write, "(result i32)")?;
-
-        let mut vars : HashSet<String> = HashSet::new();
-        self.collect_locals(&mut param_set, &mut vars);
-
-        for local in vars {
+        for local in &self.locals {
             writeln!(write, "    (local ${} i32)", local)?;
         }
-
         self.body.write_wat(write)?;
         writeln!(write, ")")?;
-
 
         Ok(())
     }
@@ -59,11 +58,11 @@ impl WatWriter for Function {
 
 impl WasmWriter for Function {
     fn write_wasm(&self, write: &mut dyn Write) -> Result<()> {
-        let buf : Vec<u8> = Vec::new();
-
-        // todo: write function body
-
-        write.write(&vec![buf.len() as u8])?; // section size
+        let mut buf : Vec<u8> = Vec::new();
+        buf.write(&vec![self.locals.len() as u8])?; // local decl count
+        self.body.write_wasm(&mut buf)?; // function body
+        buf.write(&vec![0x0b])?; //end
+        write.write(&vec![buf.len() as u8])?; // function body size
         write.write(&buf)?;
         Ok(())
     }
