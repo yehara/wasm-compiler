@@ -1,5 +1,5 @@
 use std::io::Write;
-use crate::ast::{AstNode, WasmWriter, WatWriter};
+use crate::ast::{AstNode, Function, Module, WasmWriter, WatWriter};
 
 pub struct Number {
     value: i32
@@ -13,7 +13,7 @@ impl WatWriter for Number {
 }
 
 impl WasmWriter for Number {
-    fn write_wasm(&self, write: &mut dyn Write) -> std::io::Result<()> {
+    fn write_wasm(&self, _module: Option<&Module>, _function: Option<&Function>, write: &mut dyn Write) -> std::io::Result<()> {
         write.write(&vec![0x41])?;             // i32.const
         write.write(&vec![self.value as u8])?; // i32 literal
         Ok(())

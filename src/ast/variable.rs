@@ -1,5 +1,5 @@
 use std::io::Write;
-use crate::ast::{AstNode, WasmWriter, WatWriter};
+use crate::ast::{AstNode, Function, Module, WasmWriter, WatWriter};
 
 pub struct Variable {
     pub name: String
@@ -13,8 +13,14 @@ impl WatWriter for Variable {
 }
 
 impl WasmWriter for Variable {
-    fn write_wasm(&self, _write: &mut dyn Write) -> std::io::Result<()> {
-        todo!()
+    fn write_wasm(&self, _module: Option<&Module>, function: Option<&Function>, write: &mut dyn Write) -> std::io::Result<()> {
+        let local_idx = function.unwrap().local_index.get(self.name.as_str());
+        if let Some(&index) = local_idx {
+            write.write(&vec![0x20, index as u8])?;
+        } else {
+            panic!("variable {} is not defined", self.name);
+        }
+        Ok(())
     }
 }
 

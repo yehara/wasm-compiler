@@ -1,5 +1,5 @@
 use std::io::Write;
-use crate::ast::{AstNode, WasmWriter, WatWriter};
+use crate::ast::{AstNode, Function, Module, WasmWriter, WatWriter};
 
 pub struct Call {
     name: String,
@@ -17,7 +17,7 @@ impl WatWriter for Call {
 }
 
 impl WasmWriter for Call {
-    fn write_wasm(&self, _write: &mut dyn Write) -> std::io::Result<()> {
+    fn write_wasm(&self, _module: Option<&Module>, _function: Option<&Function>, _write: &mut dyn Write) -> std::io::Result<()> {
         todo!()
     }
 }

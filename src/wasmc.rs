@@ -1,6 +1,7 @@
-use std::io::stdout;
+use std::fs::File;
+use std::io::{stdout, Write};
 use std::iter::Peekable;
-use crate::ast::{Assign, AstNode, BiOperator, BiOpKind, Block, Call, ForNode, Function, IfNode, Module, Number, Param, ReturnNode, Variable, WatWriter, WhileNode};
+use crate::ast::{Assign, AstNode, BiOperator, BiOpKind, Block, Call, ForNode, Function, IfNode, Module, Number, Param, ReturnNode, Variable, WasmWriter, WatWriter, WhileNode};
 use crate::parser::Token;
 use crate::parser::TokenIterator;
 
@@ -8,8 +9,18 @@ pub fn compile(exp: &str) {
 
     let mut input = Input::new(exp);
     let module = input.tokenize();
-    let _ = module.write_wat(&mut stdout());
 
+    //let _ = module.write_wat(&mut stdout());
+
+    let mut wat_file = File::create("out.wat").unwrap();
+    let _ = module.write_wat(&mut wat_file);
+    let _ = module.write_wat(&mut stdout());
+    let _ = wat_file.flush();
+
+
+    let mut wasm_file = File::create("out.wasm").unwrap();
+    let _ = module.write_wasm(None, None, &mut wasm_file);
+    let _ = wasm_file.flush();
 }
 
 struct Input<'a> {

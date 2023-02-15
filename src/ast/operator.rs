@@ -1,5 +1,5 @@
 use std::io::Write;
-use crate::ast::{AstNode, WasmWriter, WatWriter};
+use crate::ast::{AstNode, Function, Module, WasmWriter, WatWriter};
 
 pub enum BiOpKind {
     Add,
@@ -42,9 +42,9 @@ impl WatWriter for BiOperator {
 }
 
 impl WasmWriter for BiOperator {
-    fn write_wasm(&self, write: &mut dyn Write) -> std::io::Result<()> {
-        self.lhs.write_wasm(write)?;
-        self.rhs.write_wasm(write)?;
+    fn write_wasm(&self, module: Option<&Module>, function: Option<&Function>, write: &mut dyn Write) -> std::io::Result<()> {
+        self.lhs.write_wasm(module, function, write)?;
+        self.rhs.write_wasm(module, function, write)?;
         let operator:u8 = match &self.kind {
             BiOpKind::Add => 0x6a,
             BiOpKind::Sub => 0x6b,

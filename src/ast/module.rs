@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::io::{Write, Result};
 #[cfg(test)]
 use crate::ast::{Block, Param};
@@ -8,18 +9,21 @@ use crate::ast::WasmType::I32;
 
 pub struct Module {
     functions: Vec<Box<Function>>,
+    function_index: HashMap<String, usize>,
 }
 
 impl Module {
 
     pub fn new() -> Self {
         Self {
-            functions: Vec::new()
+            functions: Vec::new(),
+            function_index: HashMap::new()
         }
     }
 
     pub fn add_function(&mut self, function: Function) {
-        self.functions.push(Box::new(function));
+        let _ = &self.function_index.insert(function.name.to_string(), self.functions.len());
+        let _ = &self.functions.push(Box::new(function));
     }
 
     pub fn write_wasm_type_section(&self, write: &mut dyn Write) -> Result<()>{
@@ -81,7 +85,7 @@ impl Module {
 
         buf.write(&vec![self.functions.len() as u8])?; // num functions
         for function in self.functions.iter() {
-            function.write_wasm(&mut buf)?;
+            function.write_wasm(Some(self), None, &mut buf)?;
         }
 
         write.write(&vec![buf.len() as u8])?; // section size
@@ -104,7 +108,7 @@ impl WatWriter for Module {
 }
 
 impl WasmWriter for Module {
-    fn write_wasm(&self, write: &mut dyn Write) -> Result<()> {
+    fn write_wasm(&self, _: Option<&Module>, _: Option<&Function>, write: &mut dyn Write) -> Result<()> {
         write.write(&vec![0x00, 0x61, 0x73, 0x6d])?; // WASM_BINARY_MAGIC
         write.write(&vec![0x01, 0x00, 0x00, 0x00])?; // WASM_BINARY_VERSION
         self.write_wasm_type_section(write)?;
@@ -122,9 +126,8 @@ fn test_wat() {
                                  vec![Param{wtype: I32, name: "123".to_string()}],
                                  Box::new(Block::new())
     );
-    let module = Module {
-        functions: vec![Box::new(function)]
-    };
+    let mut module = Module::new();
+    module.add_function(function);
     let mut write = std::io::stdout();
     let _ = module.write_wat(&mut write);
 }
@@ -135,9 +138,8 @@ fn test_wasm() {
                                  vec![Param{wtype: I32, name: "123".to_string()}],
                                   Box::new(Block::new())
     );
-    let module = Module {
-        functions: vec![Box::new(function)]
-    };
+    let mut module = Module::new();
+    module.add_function(function);
     let mut buf = vec![];
     let _ = module.write_wasm(&mut buf);
     println!("{:x?}", buf);

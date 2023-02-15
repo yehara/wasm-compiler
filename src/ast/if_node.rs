@@ -1,5 +1,5 @@
 use std::io::Write;
-use crate::ast::{AstNode, WasmWriter, WatWriter};
+use crate::ast::{AstNode, Function, Module, WasmWriter, WatWriter};
 
 pub struct IfNode {
     condition: Box<dyn AstNode>,
@@ -28,7 +28,7 @@ impl WatWriter for IfNode {
 }
 
 impl WasmWriter for IfNode {
-    fn write_wasm(&self, _write: &mut dyn Write) -> std::io::Result<()> {
+    fn write_wasm(&self, _module: Option<&Module>, _function: Option<&Function>, _write: &mut dyn Write) -> std::io::Result<()> {
         todo!()
     }
 }

@@ -1,5 +1,5 @@
 use std::io::Write;
-use crate::ast::{AstNode, node_id, WasmWriter, WatWriter};
+use crate::ast::{AstNode, Function, Module, node_id, WasmWriter, WatWriter};
 
 pub struct WhileNode {
     id: u32,
@@ -26,7 +26,7 @@ impl WatWriter for WhileNode {
 }
 
 impl WasmWriter for WhileNode {
-    fn write_wasm(&self, _write: &mut dyn Write) -> std::io::Result<()> {
+    fn write_wasm(&self, _module: Option<&Module>, _function: Option<&Function>, _write: &mut dyn Write) -> std::io::Result<()> {
         todo!()
     }
 }

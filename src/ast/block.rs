@@ -1,5 +1,5 @@
 use std::io::Write;
-use crate::ast::{AstNode, WasmWriter, WatWriter};
+use crate::ast::{AstNode, Function, Module, WasmWriter, WatWriter};
 
 pub struct Block {
     statements: Vec<Box<dyn AstNode>>
@@ -17,9 +17,9 @@ impl WatWriter for Block {
 }
 
 impl WasmWriter for Block {
-    fn write_wasm(&self, write: &mut dyn Write) -> std::io::Result<()> {
+    fn write_wasm(&self, module: Option<&Module>, function: Option<&Function>, write: &mut dyn Write) -> std::io::Result<()> {
         for statement in &self.statements {
-            statement.write_wasm(write)?;
+            statement.write_wasm(module, function, write)?;
             write.write(&vec![0x1a])?; // drop
         }
         write.write(&vec![0x41, 0x00])?; // i32.const 0

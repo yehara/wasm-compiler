@@ -38,7 +38,7 @@ pub trait WatWriter {
     fn write_wat(&self, write: &mut dyn Write) -> Result<()>;
 }
 pub trait WasmWriter {
-    fn write_wasm(&self, write: &mut dyn Write) -> Result<()>;
+    fn write_wasm(&self, module: Option<&Module>, function: Option<&Function>, write: &mut dyn Write) -> Result<()>;
 }
 pub trait AstNode: WatWriter + WasmWriter + Any {
     fn as_variable(&self) -> Option<&Variable> {
@@ -48,9 +48,9 @@ pub trait AstNode: WatWriter + WasmWriter + Any {
         vec![]
     }
 
-    fn collect_locals(&self, params: &mut HashSet<String>, vars: &mut HashSet<String>) {
+    fn collect_locals(&self, params: &mut HashSet<String>, locals: &mut Vec<String>) {
         for child in self.children().iter() {
-            child.collect_locals(params, vars);
+            child.collect_locals(params, locals);
         }
     }
 
