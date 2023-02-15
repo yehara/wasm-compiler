@@ -24,45 +24,41 @@ impl WatWriter for BiOperator {
     fn write_wat(&self, write: &mut dyn Write) -> std::io::Result<()> {
         self.lhs.write_wat(write)?;
         self.rhs.write_wat(write)?;
-        match &self.kind {
-            BiOpKind::Add => {
-                writeln!(write, "i32.add")?;
-            }
-            BiOpKind::Sub => {
-                writeln!(write, "i32.sub")?;
-            }
-            BiOpKind::Mult => {
-                writeln!(write, "i32.mul")?;
-            }
-            BiOpKind::Div => {
-                writeln!(write, "i32.div_s")?;
-            }
-            BiOpKind::Equal => {
-                writeln!(write, "i32.eq")?;
-            }
-            BiOpKind::NotEqual => {
-                writeln!(write, "i32.ne")?;
-            }
-            BiOpKind::GreaterThan => {
-                writeln!(write, "i32.gt_s")?;
-            }
-            BiOpKind::GreaterThanOrEqual => {
-                writeln!(write, "i32.ge_s")?;
-            }
-            BiOpKind::LessThan => {
-                writeln!(write, "i32.lt_s")?;
-            }
-            BiOpKind::LessThanOrEqual => {
-                writeln!(write, "i32.le_s")?;
-            }
-        }
+        let operator = match &self.kind {
+            BiOpKind::Add => "add",
+            BiOpKind::Sub => "sub",
+            BiOpKind::Mult => "mul",
+            BiOpKind::Div => "div_s",
+            BiOpKind::Equal => "eq",
+            BiOpKind::NotEqual => "ne",
+            BiOpKind::GreaterThan => "gt_s",
+            BiOpKind::GreaterThanOrEqual => "ge_s",
+            BiOpKind::LessThan => "lt_s",
+            BiOpKind::LessThanOrEqual => "le_s"
+        };
+        writeln!(write, "i32.{}", operator)?;
         Ok(())
     }
 }
 
 impl WasmWriter for BiOperator {
-    fn write_wasm(&self, _write: &mut dyn Write) -> std::io::Result<()> {
-        todo!()
+    fn write_wasm(&self, write: &mut dyn Write) -> std::io::Result<()> {
+        self.lhs.write_wasm(write)?;
+        self.rhs.write_wasm(write)?;
+        let operator:u8 = match &self.kind {
+            BiOpKind::Add => 0x6a,
+            BiOpKind::Sub => 0x6b,
+            BiOpKind::Mult => 0x6c,
+            BiOpKind::Div => 0x6d,
+            BiOpKind::Equal => 0x46,
+            BiOpKind::NotEqual => 0x47,
+            BiOpKind::GreaterThan => 0x4a,
+            BiOpKind::GreaterThanOrEqual => 0x4e,
+            BiOpKind::LessThan => 0x48,
+            BiOpKind::LessThanOrEqual => 0x4c,
+        };
+        write.write(&[operator])?;
+        Ok(())
     }
 }
 
