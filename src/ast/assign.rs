@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::io::Write;
 use crate::ast::{AstNode, Function, Module, Variable, WasmWriter, WatWriter};
 
@@ -25,7 +24,7 @@ impl WasmWriter for Assign {
 }
 
 impl AstNode for Assign {
-    fn collect_locals(&self, _params: &mut HashSet<String>, locals: &mut Vec<String>) {
+    fn collect_locals(&self, locals: &mut Vec<String>) {
         if !locals.contains(&self.lhs.name) {
             locals.push(self.lhs.name.to_string());
         }

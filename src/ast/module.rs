@@ -26,6 +26,10 @@ impl Module {
         let _ = &self.functions.push(Box::new(function));
     }
 
+    pub fn get_function_index(&self, name: &str) -> usize {
+        *self.function_index.get(name).unwrap()
+    }
+
     pub fn write_wasm_type_section(&self, write: &mut dyn Write) -> Result<()>{
         write.write(&vec![0x01])?; // section code
 

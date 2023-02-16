@@ -17,8 +17,13 @@ impl WatWriter for Call {
 }
 
 impl WasmWriter for Call {
-    fn write_wasm(&self, _module: Option<&Module>, _function: Option<&Function>, _write: &mut dyn Write) -> std::io::Result<()> {
-        todo!()
+    fn write_wasm(&self, module: Option<&Module>, function: Option<&Function>, write: &mut dyn Write) -> std::io::Result<()> {
+        for arg in &self.arguments {
+            arg.write_wasm(module, function, write)?;
+        }
+        let func_idx = module.unwrap().get_function_index(self.name.as_str());
+        write.write(&vec![0x10, func_idx as u8])?; // call
+        Ok(())
     }
 }
 

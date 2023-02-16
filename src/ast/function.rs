@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap};
 use std::io::{Write, Result};
 use crate::ast::{AstNode, Module, Param, WasmWriter, WatWriter};
 use crate::ast::WasmType::I32;
@@ -15,13 +15,15 @@ impl Function {
 
     pub fn new(name: String, params: Vec<Param>, body: Box<dyn AstNode>) -> Self {
         let mut function = Self { name, params,  body, locals: vec![], local_index: HashMap::new() };
-        let mut param_set : HashSet<String> = HashSet::new();
+        let mut locals = vec![];
+
         for param in function.params.iter() {
-            param_set.insert(param.name.to_string());
+            let param_name = &param.name;
+            locals.push(param_name.to_string());
         }
-        let mut vars = vec![];
-        function.collect_locals(&mut param_set, &mut vars);
-        function.locals = vars;
+
+        function.collect_locals(&mut locals);
+        function.locals = locals;
         for i in 0..function.locals.len() {
             function.local_index.insert(function.locals[i].to_string(), i);
         }
@@ -63,9 +65,10 @@ impl WatWriter for Function {
 impl WasmWriter for Function {
     fn write_wasm(&self, module: Option<&Module>, _function: Option<&Function>, write: &mut dyn Write) -> Result<()> {
         let mut buf : Vec<u8> = Vec::new();
-        buf.write(&vec![0x01])?; // local decl count
-        buf.write(&vec![self.locals.len() as u8])?; // local type count
-        buf.write(&vec![0x7f])?; // i32
+        buf.write(&vec![(self.locals.len() - self.params.len()) as u8])?; // local decl count
+        for _ in self.params.len() .. self.locals.len() {
+            buf.write(&vec![0x01, 0x7f])?; // i32
+        }
         self.body.write_wasm(module, Some(self), &mut buf)?; // function body
         buf.write(&vec![0x0b])?; //end
         write.write(&vec![buf.len() as u8])?; // function body size

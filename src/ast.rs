@@ -15,7 +15,6 @@ mod for_node;
 mod call;
 
 use std::any::Any;
-use std::collections::HashSet;
 pub use module::Module;
 pub use function::Function;
 pub use wasm_type::WasmType;
@@ -48,9 +47,9 @@ pub trait AstNode: WatWriter + WasmWriter + Any {
         vec![]
     }
 
-    fn collect_locals(&self, params: &mut HashSet<String>, locals: &mut Vec<String>) {
+    fn collect_locals(&self, locals: &mut Vec<String>) {
         for child in self.children().iter() {
-            child.collect_locals(params, locals);
+            child.collect_locals(locals);
         }
     }
 
