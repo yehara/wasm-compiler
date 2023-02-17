@@ -1,8 +1,8 @@
 extern crate core;
 
 mod wasmc;
-mod parser;
 mod ast;
+mod tokenizer;
 
 use std::env;
 use std::process::exit;
