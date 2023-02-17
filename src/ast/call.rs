@@ -22,7 +22,7 @@ impl WasmWriter for Call {
             arg.write_wasm(module, function, write)?;
         }
         let func_idx = module.unwrap().get_function_index(self.name.as_str());
-        write.write(&vec![0x10, func_idx as u8])?; // call
+        write.write(&[0x10, func_idx as u8])?; // call
         Ok(())
     }
 }

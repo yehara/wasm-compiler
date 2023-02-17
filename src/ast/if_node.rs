@@ -30,17 +30,17 @@ impl WatWriter for IfNode {
 impl WasmWriter for IfNode {
     fn write_wasm(&self, module: Option<&Module>, function: Option<&Function>, write: &mut dyn Write) -> std::io::Result<()> {
         self.condition.write_wasm(module, function, write)?;
-        write.write(&vec![0x04])?; // if
-        write.write(&vec![0x40])?; // block type
+        write.write(&[0x04])?; // if
+        write.write(&[0x40])?; // block type
         self.then_block.write_wasm(module, function, write)?;
-        write.write(&vec![0x1a])?; // drop
+        write.write(&[0x1a])?; // drop
         if let Some(els) = &self.else_block {
-            write.write(&vec![0x05])?; // else
+            write.write(&[0x05])?; // else
             els.write_wasm(module, function, write)?;
-            write.write(&vec![0x1a])?; // drop
+            write.write(&[0x1a])?; // drop
         }
-        write.write(&vec![0x0b])?; // end
-        write.write(&vec![0x41, 0x00])?; // i32.const 0
+        write.write(&[0x0b])?; // end
+        write.write(&[0x41, 0x00])?; // i32.const 0
         Ok(())
     }
 }

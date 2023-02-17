@@ -16,7 +16,7 @@ impl WatWriter for ReturnNode {
 impl WasmWriter for ReturnNode {
     fn write_wasm(&self, module: Option<&Module>, function: Option<&Function>, write: &mut dyn Write) -> std::io::Result<()> {
         self.child.write_wasm(module, function, write)?;
-        write.write(&vec![0x0f])?; // return
+        write.write(&[0x0f])?; // return
         Ok(())
     }
 }

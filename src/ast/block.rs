@@ -20,9 +20,9 @@ impl WasmWriter for Block {
     fn write_wasm(&self, module: Option<&Module>, function: Option<&Function>, write: &mut dyn Write) -> std::io::Result<()> {
         for statement in &self.statements {
             statement.write_wasm(module, function, write)?;
-            write.write(&vec![0x1a])?; // drop
+            write.write(&[0x1a])?; // drop
         }
-        write.write(&vec![0x41, 0x00])?; // i32.const 0
+        write.write(&[0x41, 0x00])?; // i32.const 0
         Ok(())
     }
 }

@@ -27,18 +27,18 @@ impl WatWriter for WhileNode {
 
 impl WasmWriter for WhileNode {
     fn write_wasm(&self, module: Option<&Module>, function: Option<&Function>, write: &mut dyn Write) -> std::io::Result<()> {
-        write.write(&vec![0x02, 0x40])?; // block
-        write.write(&vec![0x03, 0x40])?; // loop
+        write.write(&[0x02, 0x40])?; // block
+        write.write(&[0x03, 0x40])?; // loop
         self.condition.write_wasm(module, function, write)?;
-        write.write(&vec![0x41, 0x00])?; // i32.const 0
-        write.write(&vec![0x46])?; // i32.eq
-        write.write(&vec![0x0d, 0x01])?; // br_if (block)
+        write.write(&[0x41, 0x00])?; // i32.const 0
+        write.write(&[0x46])?; // i32.eq
+        write.write(&[0x0d, 0x01])?; // br_if (block)
         self.body.write_wasm(module, function, write)?;
-        write.write(&vec![0x1a])?; // drop
-        write.write(&vec![0x0c, 0x00])?; // br (loop)
-        write.write(&vec![0x0b])?; // end
-        write.write(&vec![0x0b])?; // end
-        write.write(&vec![0x41, 0x00])?; // i32.const 0
+        write.write(&[0x1a])?; // drop
+        write.write(&[0x0c, 0x00])?; // br (loop)
+        write.write(&[0x0b])?; // end
+        write.write(&[0x0b])?; // end
+        write.write(&[0x41, 0x00])?; // i32.const 0
         Ok(())
     }
 }

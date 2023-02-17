@@ -32,10 +32,10 @@ impl Module {
     }
 
     pub fn write_wasm_type_section(&self, write: &mut dyn Write) -> Result<()>{
-        write.write(&vec![0x01])?; // section code
+        write.write(&[0x01])?; // section code
 
         let mut buf : Vec<u8> = Vec::new();
-        buf.write(&vec![self.functions.len() as u8])?; // num types
+        buf.write(&[self.functions.len() as u8])?; // num types
         for function in self.functions.iter() {
             function.write_wasm_type(&mut buf)?;
         }
@@ -45,12 +45,12 @@ impl Module {
     }
 
     pub fn write_wasm_function_section(&self, write: &mut dyn Write) -> Result<()>{
-        write.write(&vec![0x03])?; // section code
+        write.write(&[0x03])?; // section code
 
         let mut buf : Vec<u8> = Vec::new();
-        buf.write(&vec![self.functions.len() as u8])?; // num functions
+        buf.write(&[self.functions.len() as u8])?; // num functions
         for i in 0.. self.functions.len() {
-            buf.write(&vec![i as u8])?; // function signature index
+            buf.write(&[i as u8])?; // function signature index
         }
         write.write(&usize_to_leb128(buf.len()))?; // section size
         write.write(&buf)?;
@@ -58,14 +58,14 @@ impl Module {
     }
 
     pub fn write_wasm_export_section(&self, write: &mut dyn Write) -> Result<()> {
-        write.write(&vec![0x07])?; // section code
+        write.write(&[0x07])?; // section code
 
         let mut buf : Vec<u8> = Vec::new();
-        buf.write(&vec![0x01])?; // num exports (1固定)
+        buf.write(&[0x01])?; // num exports (1固定)
         let main_name = "main";
-        buf.write(&vec![main_name.len() as u8])?; // string length
+        buf.write(&[main_name.len() as u8])?; // string length
         buf.write(main_name.as_bytes())?; // export name
-        buf.write(&vec![0x00])?; // export kind
+        buf.write(&[0x00])?; // export kind
 
         let main_func = self.functions.iter().enumerate().find(|(_, function)| {
             function.name == main_name
@@ -73,7 +73,7 @@ impl Module {
 
         match main_func {
             Some((i, _)) => {
-                buf.write(&vec![i as u8])?; // export func index
+                buf.write(&[i as u8])?; // export func index
             },
             None => {
                 panic!("function `main` not found");
@@ -85,10 +85,10 @@ impl Module {
     }
 
     pub fn write_wasm_code_section(&self, write: &mut dyn Write) -> Result<()> {
-        write.write(&vec![0x0a])?; // section code
+        write.write(&[0x0a])?; // section code
         let mut buf : Vec<u8> = Vec::new();
 
-        buf.write(&vec![self.functions.len() as u8])?; // num functions
+        buf.write(&[self.functions.len() as u8])?; // num functions
         for function in self.functions.iter() {
             function.write_wasm(Some(self), None, &mut buf)?;
         }
@@ -113,8 +113,8 @@ impl WatWriter for Module {
 
 impl WasmWriter for Module {
     fn write_wasm(&self, _: Option<&Module>, _: Option<&Function>, write: &mut dyn Write) -> Result<()> {
-        write.write(&vec![0x00, 0x61, 0x73, 0x6d])?; // WASM_BINARY_MAGIC
-        write.write(&vec![0x01, 0x00, 0x00, 0x00])?; // WASM_BINARY_VERSION
+        write.write(&[0x00, 0x61, 0x73, 0x6d])?; // WASM_BINARY_MAGIC
+        write.write(&[0x01, 0x00, 0x00, 0x00])?; // WASM_BINARY_VERSION
         self.write_wasm_type_section(write)?;
         self.write_wasm_function_section(write)?;
         self.write_wasm_export_section(write)?;

@@ -33,14 +33,14 @@ impl Function {
 
     pub fn write_wasm_type(&self, write: &mut dyn Write) -> Result<()>{
         //self.collect_locals(&mut self);
-        write.write(&vec![0x60])?; // func
-        write.write(&vec![self.params.len() as u8])?; // num params
+        write.write(&[0x60])?; // func
+        write.write(&[self.params.len() as u8])?; // num params
         for param in self.params.iter() {
-            write.write(&vec![param.wtype.code()])?; // param type
+            write.write(&[param.wtype.code()])?; // param type
         }
         // result タイプは i32 固定
-        write.write(&vec![0x01])?; // num results
-        write.write(&vec![I32.code()])?; // result type
+        write.write(&[0x01])?; // num results
+        write.write(&[I32.code()])?; // result type
         Ok(())
     }
 
@@ -66,12 +66,12 @@ impl WatWriter for Function {
 impl WasmWriter for Function {
     fn write_wasm(&self, module: Option<&Module>, _function: Option<&Function>, write: &mut dyn Write) -> Result<()> {
         let mut buf : Vec<u8> = Vec::new();
-        buf.write(&vec![(self.locals.len() - self.params.len()) as u8])?; // local decl count
+        buf.write(&[(self.locals.len() - self.params.len()) as u8])?; // local decl count
         for _ in self.params.len() .. self.locals.len() {
-            buf.write(&vec![0x01, 0x7f])?; // i32
+            buf.write(&[0x01, 0x7f])?; // i32
         }
         self.body.write_wasm(module, Some(self), &mut buf)?; // function body
-        buf.write(&vec![0x0b])?; //end
+        buf.write(&[0x0b])?; //end
         write.write(&usize_to_leb128(buf.len()))?; // function body size
         write.write(&buf)?;
         Ok(())

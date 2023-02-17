@@ -16,7 +16,7 @@ impl WasmWriter for Variable {
     fn write_wasm(&self, _module: Option<&Module>, function: Option<&Function>, write: &mut dyn Write) -> std::io::Result<()> {
         let local_idx = function.unwrap().local_index.get(self.name.as_str());
         if let Some(&index) = local_idx {
-            write.write(&vec![0x20, index as u8])?;
+            write.write(&[0x20, index as u8])?;
         } else {
             panic!("variable {} is not defined", self.name);
         }
