@@ -2,7 +2,6 @@ mod module;
 mod function;
 mod param;
 mod wasm_type;
-mod builder;
 mod block;
 mod return_node;
 mod assign;
@@ -13,6 +12,7 @@ mod if_node;
 mod while_node;
 mod for_node;
 mod call;
+mod leb128;
 
 use std::any::Any;
 pub use module::Module;
