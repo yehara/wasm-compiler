@@ -52,8 +52,8 @@ impl WatWriter for Function {
             writeln!(write, "    (param ${} i32)", param.name)?;
         }
         writeln!(write, "(result i32)")?;
-        for local in &self.locals {
-            writeln!(write, "    (local ${} i32)", local)?;
+        for i in self.params.len() .. self.locals.len() {
+            writeln!(write, "    (local ${} i32)", self.locals[i])?;
         }
         self.body.write_wat(write)?;
         writeln!(write, ")")?;
