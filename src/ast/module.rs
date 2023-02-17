@@ -4,6 +4,7 @@ use std::io::{Write, Result};
 use crate::ast::{Block, Param};
 use crate::ast::{WasmWriter, WatWriter};
 use crate::ast::Function;
+use crate::ast::leb128::usize_to_leb128;
 #[cfg(test)]
 use crate::ast::WasmType::I32;
 
@@ -38,7 +39,7 @@ impl Module {
         for function in self.functions.iter() {
             function.write_wasm_type(&mut buf)?;
         }
-        write.write(&vec![buf.len() as u8])?; // section size
+        write.write(&usize_to_leb128(buf.len()))?; // section size
         write.write(&buf)?;
         Ok(())
     }
@@ -51,7 +52,7 @@ impl Module {
         for i in 0.. self.functions.len() {
             buf.write(&vec![i as u8])?; // function signature index
         }
-        write.write(&vec![buf.len() as u8])?; // section size
+        write.write(&usize_to_leb128(buf.len()))?; // section size
         write.write(&buf)?;
         Ok(())
     }
@@ -78,7 +79,7 @@ impl Module {
                 panic!("function `main` not found");
             }
         }
-        write.write(&vec![buf.len() as u8])?; // section size
+        write.write(&usize_to_leb128(buf.len()))?; // section size
         write.write(&buf)?;
         Ok(())
     }
@@ -91,8 +92,7 @@ impl Module {
         for function in self.functions.iter() {
             function.write_wasm(Some(self), None, &mut buf)?;
         }
-
-        write.write(&vec![buf.len() as u8])?; // section size
+        write.write(&usize_to_leb128(buf.len()))?; // section size
         write.write(&buf)?;
         Ok(())
     }

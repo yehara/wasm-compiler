@@ -1,6 +1,7 @@
 use std::collections::{HashMap};
 use std::io::{Write, Result};
 use crate::ast::{AstNode, Module, Param, WasmWriter, WatWriter};
+use crate::ast::leb128::usize_to_leb128;
 use crate::ast::WasmType::I32;
 
 pub struct Function {
@@ -71,7 +72,7 @@ impl WasmWriter for Function {
         }
         self.body.write_wasm(module, Some(self), &mut buf)?; // function body
         buf.write(&vec![0x0b])?; //end
-        write.write(&vec![buf.len() as u8])?; // function body size
+        write.write(&usize_to_leb128(buf.len()))?; // function body size
         write.write(&buf)?;
         Ok(())
     }
