@@ -3,19 +3,29 @@ assert() {
   expected="$1"
   input="$2"
 
-  cargo run -- "$input" > tmp.wat
-  actual=`wasmtime tmp.wat --invoke main`
+  cargo run -- "$input" > /dev/null
 
-  if [ "$actual" = "$expected" ]; then
-    echo "$input => $actual"
+  wat_actual=`wasmtime out.wat --invoke main`
+  if [ "$wat_actual" = "$expected" ]; then
+    echo "Text Format: $input => $actual"
   else
-    echo "$input => $expected expected, but got $actual"
+    echo "$input => $expected expected, but got $wat_actual"
+    exit 1
+  fi
+
+  wasm_actual=`wasmtime out.wasm --invoke main`
+  if [ "$wasm_actual" = "$expected" ]; then
+    echo "Binary Format: $input => $actual"
+  else
+    echo "$input => $expected expected, but got $wasm_actual"
     exit 1
   fi
 }
 
 assert 0 'main(){return 0;}'
 assert 42 'main(){return 42;}'
+assert 2147483647 'main(){return 2147483647;}'
+assert -123456 'main(){return -123456;}'
 assert 21 'main(){return 5+20-4;}'
 assert 21 'main(){return  5 + 20 - 4 ;}'
 assert 47 'main(){return 5+6*7;}'
