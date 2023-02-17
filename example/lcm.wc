@@ -1,0 +1,18 @@
+main(){
+    return lcm(12,20);
+}
+lcm(a,b){
+    return a/gcd(a,b)*b;
+}
+gcd(a,b){
+    if(a<b) {
+        return gcd(b,a);
+    }
+    if(a==b) {
+        return a;
+    }
+    if(b==0) {
+        return a;
+    }
+    return gcd(b,a-(a/b*b));
+}

@@ -1,0 +1,9 @@
+main(){
+    return fib1(10);
+}
+fib1(a){
+    if(a<=1){
+        return a;
+    }
+    return fib1(a-2)+fib1(a-1);
+}
