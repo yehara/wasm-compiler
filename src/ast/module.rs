@@ -125,9 +125,8 @@ impl WasmWriter for Module {
 
 #[test]
 fn test_wat() {
-
     let function = Function::new("main".to_string(),
-                                 vec![Param{wtype: I32, name: "123".to_string()}],
+                                 vec![Param{wtype: I32, name: "abc".to_string()}],
                                  Box::new(Block::new())
     );
     let mut module = Module::new();
@@ -139,13 +138,13 @@ fn test_wat() {
 #[test]
 fn test_wasm() {
     let function = Function::new("main".to_string(),
-                                 vec![Param{wtype: I32, name: "123".to_string()}],
+                                 vec![Param{wtype: I32, name: "abc".to_string()}],
                                   Box::new(Block::new())
     );
     let mut module = Module::new();
     module.add_function(function);
     let mut buf = vec![];
-    let _ = module.write_wasm(&mut buf);
+    let _ = module.write_wasm(None, None, &mut buf);
     println!("{:x?}", buf);
 
 }
