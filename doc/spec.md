@@ -22,7 +22,7 @@ function の index は定義順。type の index と一致。
 ### export section
 固定で main 関数を 1 つのみを export する。
 - `0x01` num exports
-- `0x04 0x6d 0x61 0x69 0x6e`
+- `0x04 0x6d 0x61 0x69 0x6e` "main".len() + "main"
 - `0x00` export kind
 - `(func_idx)` main 関数の index
 
