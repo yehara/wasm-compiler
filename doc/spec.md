@@ -27,6 +27,8 @@ function の index は定義順。type の index と一致。
 - `(func_idx)` main 関数の index
 
 ### code section
+- `(local decl count)' local 変数の数
+- `0x01 0x7f` 1 x i32 を local 変数の数だけ並べる
 - `0x02 0x40` block
 - `0x03 0x40` loop
 - `0x04 0x40` if
